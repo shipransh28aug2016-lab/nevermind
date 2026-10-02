@@ -142,7 +142,7 @@ def seed_system(db, kg: KnowledgeGraph, skills: SkillRegistry, memory) -> None:
     db.set_setting("max_rounds", db.get_setting("max_rounds", 3))
     db.set_setting("kill", False)
     db.set_setting("paused", False)
-    db.set_setting("system_name", "NEVERMIND")
+    db.set_setting("system_name", "NeverMind")
     db.set_setting("version", "1.0.0")
     db.set_setting("seeded_at", db.get_setting("seeded_at", time.time()))
 

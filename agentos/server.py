@@ -724,7 +724,7 @@ class Handler(BaseHTTPRequestHandler):
     def _bootstrap(self) -> Dict[str, Any]:
         from .agents import roster
         return {
-            "system": {"name": DBI.get_setting("system_name", "NEVERMIND"),
+            "system": {"name": DBI.get_setting("system_name", "NeverMind"),
                        "version": DBI.get_setting("version", "1.0.0")},
             "agents": roster(),
             "settings": self._settings_safe(),
