@@ -1,0 +1,17 @@
+[Unit]
+Description=NEVERMIND wake-up guardian (health watchdog)
+After=network.target
+# NB: NOT After=nevermind.service — nevermind can sit in start-pre standby
+# indefinitely (patient port wait), which would block guardian forever.
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/nevermind
+Environment=HOME=/home/user PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/python3 guardian.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

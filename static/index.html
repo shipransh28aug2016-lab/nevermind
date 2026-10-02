@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeverMind — Multi-Agent OS for Educators</title>
+<meta name="description" content="NeverMind: a constitutionally-governed, offline-first multi-agent OS. Question papers, lesson plans and worksheets on official CBSE syllabus — no API keys required.">
+<style>
+  :root{
+    --bg:#0a0c10; --bg2:#0f1218; --panel:#141824; --panel2:#1a1f30;
+    --line:#262c3f; --text:#e8eaf2; --mut:#9aa2b8; --gold:#f0b429;
+    --gold2:#ffd76e; --ok:#3ddc97; --red:#ff6b6b; --blue:#6ea8ff;
+    --radius:14px; --max:1160px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans",sans-serif;line-height:1.6;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  .gold{color:var(--gold)}
+
+  /* ---------- nav ---------- */
+  nav{position:sticky;top:0;z-index:50;background:rgba(10,12,16,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;gap:28px;height:64px;max-width:var(--max);margin:0 auto;padding:0 24px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:1.5px;font-size:17px}
+  .orb{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 32% 30%,#ffe9a8,#f0b429 45%,#7a5100);box-shadow:0 0 16px rgba(240,180,41,.55);animation:pulse 2.6s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+  .nav-links{display:flex;gap:22px;margin-left:8px}
+  .nav-links a{color:var(--mut);font-size:14.5px;transition:color .2s}
+  .nav-links a:hover{color:var(--text)}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:12.5px}
+  .lang button{background:none;border:0;color:var(--mut);padding:6px 12px;cursor:pointer;font-weight:600}
+  .lang button.on{background:var(--gold);color:#181205}
+  .btn{display:inline-flex;align-items:center;gap:9px;border-radius:11px;padding:11px 20px;font-weight:650;font-size:15px;cursor:pointer;border:1px solid transparent;transition:all .18s}
+  .btn-gh{background:#f0f2f8;color:#12151d;border-color:#f0f2f8}
+  .btn-gh:hover{background:#fff;transform:translateY(-1px)}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),#e09612);color:#1a1204;box-shadow:0 6px 24px rgba(240,180,41,.28)}
+  .btn-gold:hover{transform:translateY(-1px);box-shadow:0 10px 30px rgba(240,180,41,.38)}
+  .btn-ghost{background:transparent;color:var(--text);border-color:var(--line)}
+  .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+  .btn-sm{padding:8px 16px;font-size:14px}
+  .avatar{width:30px;height:30px;border-radius:50%;border:2px solid var(--gold)}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;padding:96px 0 70px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:-40% -20% auto -20%;height:120%;
+    background:radial-gradient(600px 320px at 28% 20%,rgba(240,180,41,.16),transparent 65%),
+               radial-gradient(520px 300px at 78% 8%,rgba(110,168,255,.12),transparent 60%);
+    pointer-events:none}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;position:relative}
+  .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel);
+    color:var(--mut);border-radius:999px;padding:7px 16px;font-size:13px;margin-bottom:26px}
+  .pill b{color:var(--ok);font-weight:650}
+  h1{font-size:clamp(38px,5vw,58px);line-height:1.1;letter-spacing:-1.2px;font-weight:820}
+  h1 .grad{background:linear-gradient(90deg,var(--gold2),var(--gold) 55%,#c77f0a);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--mut);font-size:18px;margin:22px 0 32px;max-width:560px}
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .cta-note{font-size:12.5px;color:var(--mut);margin-top:14px}
+  .cta-note b{color:var(--ok)}
+
+  /* mock console */
+  .mock{background:linear-gradient(180deg,var(--panel),#11141d);border:1px solid var(--line);
+    border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden;transform:perspective(1400px) rotateY(-6deg) rotateX(2deg)}
+  .mock-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:#10131c}
+  .dot{width:11px;height:11px;border-radius:50%}
+  .mock-url{margin-left:10px;font-size:12px;color:var(--mut);background:#0b0e15;border:1px solid var(--line);
+    border-radius:7px;padding:4px 12px;flex:1}
+  .mock-body{display:grid;grid-template-columns:150px 1fr;min-height:320px}
+  .mock-side{border-right:1px solid var(--line);padding:14px 10px;background:#0d1017}
+  .m-item{font-size:12.5px;color:var(--mut);padding:8px 10px;border-radius:8px;margin-bottom:4px}
+  .m-item.on{background:rgba(240,180,41,.12);color:var(--gold);border:1px solid rgba(240,180,41,.25)}
+  .mock-main{padding:16px 18px}
+  .m-line{height:10px;border-radius:5px;background:#1d2334;margin:10px 0}
+  .m-line.w60{width:60%} .m-line.w80{width:80%} .m-line.w40{width:40%}
+  .m-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:16px 0}
+  .m-card{background:#121726;border:1px solid var(--line);border-radius:10px;padding:12px}
+  .m-card .n{font-size:20px;font-weight:800;color:var(--gold)}
+  .m-card .l{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
+  .m-run{display:flex;align-items:center;gap:8px;background:rgba(61,220,151,.08);border:1px solid rgba(61,220,151,.3);
+    color:var(--ok);font-size:12px;border-radius:9px;padding:9px 12px;margin-top:14px}
+  .m-run .spin{width:10px;height:10px;border:2px solid rgba(61,220,151,.3);border-top-color:var(--ok);border-radius:50%;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* ---------- stats ---------- */
+  .stats{border-block:1px solid var(--line);background:var(--bg2)}
+  .stats-in{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:34px 24px;max-width:var(--max);margin:0 auto;text-align:center}
+  .stat .n{font-size:34px;font-weight:820;color:var(--gold)}
+  .stat .l{font-size:13.5px;color:var(--mut);letter-spacing:.4px}
+
+  /* ---------- sections ---------- */
+  section{padding:84px 0}
+  .kicker{color:var(--gold);font-size:13px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:12px}
+  h2{font-size:clamp(28px,3.4vw,40px);letter-spacing:-.8px;font-weight:800;line-height:1.15}
+  .lead{color:var(--mut);font-size:17px;margin-top:14px;max-width:680px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px}
+  .card{background:linear-gradient(180deg,var(--panel),#12151f);border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px;transition:all .22s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-4px);border-color:rgba(240,180,41,.45);box-shadow:0 16px 44px rgba(0,0,0,.4)}
+  .card .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.3);margin-bottom:16px}
+  .card h3{font-size:17.5px;margin-bottom:8px;font-weight:720}
+  .card p{color:var(--mut);font-size:14.5px}
+
+  /* syllabus table */
+  .syl-wrap{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:44px}
+  .syl-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+  .syl-card h4{font-size:15.5px;margin-bottom:14px;display:flex;justify-content:space-between}
+  .syl-card h4 span{color:var(--gold);font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{color:var(--mut);text-align:left;font-weight:600;padding:8px 6px;border-bottom:1px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  td{padding:9px 6px;border-bottom:1px solid rgba(38,44,63,.6)}
+  td:last-child,.th-right{text-align:right;color:var(--gold);font-weight:700}
+  tr:last-child td{border-bottom:0}
+  .typo-bar{display:flex;height:34px;border-radius:9px;overflow:hidden;margin-top:16px;font-size:11.5px;font-weight:700}
+  .typo-bar div{display:flex;align-items:center;justify-content:center;color:#0d1017}
+  .t1{background:#ffd76e;flex:40} .t2{background:#f0b429;flex:30} .t3{background:#c98a0e;flex:30;color:#fff}
+
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:46px;counter-reset:st}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:28px;position:relative}
+  .step::before{counter-increment:st;content:counter(st);position:absolute;top:-18px;left:24px;width:38px;height:38px;
+    background:var(--gold);color:#181205;font-weight:850;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .step h3{margin:10px 0 8px;font-size:17px}
+  .step p{color:var(--mut);font-size:14.5px}
+
+  /* launch / login */
+  .launch{background:
+    radial-gradient(700px 320px at 80% 10%,rgba(240,180,41,.12),transparent 60%),
+    linear-gradient(180deg,var(--bg2),var(--bg));border-block:1px solid var(--line)}
+  .launch-card{max-width:760px;margin:44px auto 0;background:var(--panel);border:1px solid var(--line);
+    border-radius:20px;padding:44px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+  .launch-card h2{margin-bottom:10px}
+  .launch-card p{color:var(--mut);margin-bottom:28px}
+  .login-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .auth-state{margin-top:20px;font-size:13.5px;color:var(--mut);min-height:20px}
+  .auth-state .ok{color:var(--ok)} .auth-state .warn{color:var(--gold)}
+  .login-hint{margin-top:18px;font-size:12.5px;color:var(--mut);background:#10141f;border:1px dashed var(--line);
+    border-radius:10px;padding:12px 16px;display:inline-block;text-align:left;max-width:560px}
+  .login-hint code{color:var(--gold);font-size:12px}
+
+  /* trust badges */
+  .badges{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:34px}
+  .badge{border:1px solid var(--line);background:var(--panel);color:var(--mut);border-radius:999px;
+    padding:8px 16px;font-size:13px;display:flex;gap:8px;align-items:center}
+  .badge b{color:var(--text);font-weight:650}
+
+  footer{border-top:1px solid var(--line);padding:40px 0;color:var(--mut);font-size:14px}
+  .foot-in{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center;max-width:var(--max);margin:0 auto;padding:0 24px}
+  .foot-links{display:flex;gap:20px}
+  .foot-links a:hover{color:var(--gold)}
+
+  @media (max-width:960px){
+    .hero-grid{grid-template-columns:1fr}
+    .mock{transform:none}
+    .grid3,.steps{grid-template-columns:1fr}
+    .syl-wrap{grid-template-columns:1fr}
+    .stats-in{grid-template-columns:1fr 1fr;gap:24px}
+    .nav-links{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<nav>
+  <div class="nav-in">
+    <a class="brand" href="/"><span class="orb"></span>NEVERMIND</a>
+    <div class="nav-links">
+      <a href="#features" data-en="Features" data-hi="फीचर्स">Features</a>
+      <a href="#syllabus" data-en="CBSE Syllabus" data-hi="CBSE सिलेबस">CBSE Syllabus</a>
+      <a href="#how" data-en="How it works" data-hi="कैसे काम करता है">How it works</a>
+      <a href="#launch" data-en="Launch" data-hi="लॉन्च">Launch</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang">
+        <button id="langEn" class="on" onclick="setLang('en')">EN</button>
+        <button id="langHi" onclick="setLang('hi')">हि</button>
+      </div>
+      <a class="btn btn-ghost btn-sm" id="navSign" href="/api/auth/github"
+         data-en="Sign in" data-hi="साइन इन">Sign in</a>
+      <a class="btn btn-gold btn-sm" id="navOpen" href="/app.html"
+         data-en="Open" data-hi="खोलें">Open</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="pill"><b>●</b> <span data-en="Offline-first · Zero API keys required" data-hi="ऑफ़लाइन-फर्स्ट · कोई API key ज़रूरी नहीं">Offline-first · Zero API keys required</span></div>
+      <h1>
+        <span data-en="The multi-agent OS that" data-hi="मल्टी-एजेंट OS जो">The multi-agent OS that</span>
+        <span class="grad" data-en="actually follows the syllabus." data-hi="सच में सिलेबस फॉलो करता है।">actually follows the syllabus.</span>
+      </h1>
+      <p class="sub" data-en="NeverMind runs a governed team of 9 specialists — question papers, lesson plans and worksheets built on the official CBSE 2026-27 blueprint, verified by deterministic validators, protected by a constitution that never lies about what it made."
+         data-hi="NeverMind एक संविधान-शासित टीम चलाता है — आधिकारिक CBSE 2026-27 ब्लूप्रिंट पर प्रश्नपत्र, पाठ योजना और वर्कशीट, निर्णायक वैलिडेटर से परखी हुई, और ऐसा संविधान जो कभी झूठ नहीं बोलता।">
+        NeverMind runs a governed team of 9 specialists — question papers, lesson plans and worksheets built on the official CBSE 2026-27 blueprint, verified by deterministic validators, protected by a constitution that never lies about what it made.
+      </p>
+      <div class="hero-cta">
+        <a class="btn btn-gold" href="/app.html" data-en="Open Control Center →" data-hi="कंट्रोल सेंटर खोलें →">Open Control Center →</a>
+        <a class="btn btn-gh" href="/api/auth/github">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span data-en="Continue with GitHub" data-hi="GitHub से जारी रखें">Continue with GitHub</span>
+        </a>
+      </div>
+      <div class="cta-note" id="heroNote">
+        <span data-en="Guest mode works instantly —" data-hi="गेस्ट मोड तुरंत चलता है —">Guest mode works instantly —</span>
+        <b data-en="sign-in is optional." data-hi="साइन-इन वैकल्पिक है।">sign-in is optional.</b>
+      </div>
+    </div>
+
+    <!-- mock console -->
+    <div class="mock" aria-hidden="true">
+      <div class="mock-bar">
+        <span class="dot" style="background:#ff5f57"></span>
+        <span class="dot" style="background:#febc2e"></span>
+        <span class="dot" style="background:#28c840"></span>
+        <span class="mock-url">nevermind.local/app</span>
+      </div>
+      <div class="mock-body">
+        <div class="mock-side">
+          <div class="m-item on">◉ <span data-en="Control Center" data-hi="कंट्रोल सेंटर">Control Center</span></div>
+          <div class="m-item">▣ <span data-en="Tasks" data-hi="टास्क">Tasks</span></div>
+          <div class="m-item">◈ <span data-en="Deliberation" data-hi="विमर्श">Deliberation</span></div>
+          <div class="m-item">☰ <span data-en="Files" data-hi="फ़ाइलें">Files</span></div>
+          <div class="m-item">⚿ <span data-en="Memory" data-hi="मेमोरी">Memory</span></div>
+          <div class="m-item">⬡ <span data-en="Knowledge" data-hi="ज्ञान">Knowledge</span></div>
+        </div>
+        <div class="mock-main">
+          <div class="m-line w60"></div>
+          <div class="m-cards">
+            <div class="m-card"><div class="n">9</div><div class="l" data-en="Agents" data-hi="एजेंट">Agents</div></div>
+            <div class="m-card"><div class="n">21</div><div class="l" data-en="Skills" data-hi="स्किल">Skills</div></div>
+            <div class="m-card"><div class="n">0</div><div class="l" data-en="API keys" data-hi="API कुंजियाँ">API keys</div></div>
+          </div>
+          <div class="m-line w80"></div>
+          <div class="m-line w40"></div>
+          <div class="m-run"><span class="spin"></span>
+            <span data-en="Question paper verified — syllabus_scope ✓ · marks_total ✓" data-hi="प्रश्नपत्र सत्यापित — syllabus_scope ✓ · marks_total ✓">Question paper verified — syllabus_scope ✓ · marks_total ✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ================= STATS ================= -->
+<div class="stats">
+  <div class="stats-in">
+    <div class="stat"><div class="n">9</div><div class="l" data-en="Specialist agents" data-hi="विशेषज्ञ एजेंट">Specialist agents</div></div>
+    <div class="stat"><div class="n">21</div><div class="l" data-en="Deterministic skills" data-hi="निर्णायक स्किल्स">Deterministic skills</div></div>
+    <div class="stat"><div class="n">3×2</div><div class="l" data-en="CBSE subjects & classes" data-hi="CBSE विषय व कक्षाएँ">CBSE subjects &amp; classes</div></div>
+    <div class="stat"><div class="n">100%</div><div class="l" data-en="Runs offline" data-hi="पूर्णतः ऑफ़लाइन">Runs offline</div></div>
+  </div>
+</div>
+
+<!-- ================= FEATURES ================= -->
+<section id="features">
+  <div class="wrap">
+    <div class="kicker" data-en="Capabilities" data-hi="क्षमताएँ">Capabilities</div>
+    <h2 data-en="Everything a teaching team needs —" data-hi="एक शिक्षक टीम को जो चाहिए — सब">Everything a teaching team needs —</h2>
+    <h2 class="gold" data-en="governed, verifiable, honest." data-hi="शासित, जाँचने-योग्य, ईमानदार।">governed, verifiable, honest.</h2>
+    <p class="lead" data-en="Every deliverable passes deterministic validators before it reaches you. Every claim carries provenance. Every limitation is printed on the artifact itself."
+       data-hi="हर डिलिवरेबल आपके पास आने से पहले निर्णायक वैलिडेटर से गुज़रता है। हर दावे के साथ स्रोत होता है, हर सीमा काग़ज़ पर छपी होती है।">
+      Every deliverable passes deterministic validators before it reaches you. Every claim carries provenance. Every limitation is printed on the artifact itself.</p>
+
+    <div class="grid3">
+      <div class="card">
+        <div class="ic">🎓</div>
+        <h3 data-en="CBSE syllabus-aware engine" data-hi="CBSE सिलेबस-जागरूक इंजन">CBSE syllabus-aware engine</h3>
+        <p data-en="Accountancy, Business Studies &amp; Entrepreneurship for classes XI/XII — unit-wise marks, typology weightage, verbatim topic lists and scope rules live in the agent's memory."
+           data-hi="कक्षा XI/XII के लिए लेखाशास्त्र, व्यवसाय अध्ययन और उद्यमिता — इकाईवार अंक, टाइपोलॉजी वेटेज, शब्दशः टॉपिक सूची और स्कोप नियम एजेंट की मेमोरी में रहते हैं।">
+          Accountancy, Business Studies &amp; Entrepreneurship for classes XI/XII — unit-wise marks, typology weightage, verbatim topic lists and scope rules live in the agent's memory.</p>
+      </div>
+      <div class="card">
+        <div class="ic">⚖️</div>
+        <h3 data-en="Constitutional governance" data-hi="संवैधानिक शासन">Constitutional governance</h3>
+        <p data-en="C1–C14 articles bind every agent: never misguide, never fake completion, never quarrel. Out-of-syllabus requests get flagged NEEDS_REVIEW — not silently served."
+           data-hi="C1–C14 धाराएँ हर एजेंट को बाँधती हैं: न गुमराह करो, न नकली पूर्णता दिखाओ, न झगड़ो। सिलेबस से बाहर की माँग NEEDS_REVIEW फ्लैग पाती है — चुपचाप नहीं।">
+          C1–C14 articles bind every agent: never misguide, never fake completion, never quarrel. Out-of-syllabus requests get flagged NEEDS_REVIEW — not silently served.</p>
+      </div>
+      <div class="card">
+        <div class="ic">🧠</div>
+        <h3 data-en="Memory that compounds" data-hi="बढ़ती हुई मेमोरी">Memory that compounds</h3>
+        <p data-en="Semantic facts, procedures and episodes persist across restarts. Ask about 'break-even' and the official syllabus facts surface first — with confidence scores."
+           data-hi="सिमैंटिक तथ्य, प्रक्रियाएँ और एपिसोड रीस्टार्ट के बाद भी रहते हैं। 'break-even' पूछिए — आधिकारिक सिलेबस तथ्य पहले आते हैं, आत्मविश्वास-स्कोर के साथ।">
+          Semantic facts, procedures and episodes persist across restarts. Ask about 'break-even' and the official syllabus facts surface first — with confidence scores.</p>
+      </div>
+      <div class="card">
+        <div class="ic">🤝</div>
+        <h3 data-en="Deliberation, not hallucination" data-hi="विमर्श, न कल्पना">Deliberation, not hallucination</h3>
+        <p data-en="Specialists propose, critics challenge with evidence, revisions must address concerns. Consensus is documented with concessions — visible in the DB and the UI."
+           data-hi="विशेषज्ञ प्रस्ताव देते हैं, आलोचक प्रमाण से चुनौती देते हैं, संशोधन चिंताओं का समाधान करते हैं। सहमति दर्ज होती है — DB और UI दोनों में दिखती है।">
+          Specialists propose, critics challenge with evidence, revisions must address concerns. Consensus is documented with concessions — visible in the DB and the UI.</p>
+      </div>
+      <div class="card">
+        <div class="ic">🔕</div>
+        <h3 data-en="Offline-first by design" data-hi="डिज़ाइन से ऑफ़लाइन-फर्स्ट">Offline-first by design</h3>
+        <p data-en="Zero API keys to start. All 21 skills are deterministic Python. Add a provider key later in Settings and every agent upgrades — same constitution, more reach."
+           data-hi="शुरू करने के लिए शून्य API keys। सभी 21 स्किल्स निर्णायक Python हैं। बाद में Settings में provider key डालिए — संविधान वही, पहुँच बड़ी।">
+          Zero API keys to start. All 21 skills are deterministic Python. Add a provider key later in Settings and every agent upgrades — same constitution, more reach.</p>
+      </div>
+      <div class="card">
+        <div class="ic">🌐</div>
+        <h3 data-en="Bilingual from day one" data-hi="पहले दिन से द्विभाषी">Bilingual from day one</h3>
+        <p data-en="English by default, हिंदी one toggle away — commands, summaries, artifacts and this page. Built for Indian classrooms, not adapted to them later."
+           data-hi="डिफ़ॉल्ट अंग्रेज़ी, एक टॉगल में हिंदी — कमांड, सारांश, आर्टिफैक्ट और यह पेज। भारतीय कक्षाओं के लिए बना, बाद में ढाला नहीं गया।">
+          English by default, हिंदी one toggle away — commands, summaries, artifacts and this page. Built for Indian classrooms, not adapted to them later.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SYLLABUS ================= -->
+<section id="syllabus" style="background:var(--bg2);border-block:1px solid var(--line)">
+  <div class="wrap">
+    <div class="kicker" data-en="Syllabus intelligence" data-hi="सिलेबस इंटेलिजेंस">Syllabus intelligence</div>
+    <h2 data-en="The blueprint lives inside the agent." data-hi="ब्लूप्रिंट एजेंट के भीतर रहता है।">The blueprint lives inside the agent.</h2>
+    <p class="lead" data-en="Real weightage from the official CBSE 2026-27 subject-wise syllabus (Sec 2, Phase 2) — used to build, validate and scope every paper."
+       data-hi="आधिकारिक CBSE 2026-27 सिलेबस (Sec 2, Phase 2) का वास्तविक वेटेज — हर पेपर बनाने, जाँचने और सीमित करने में उपयोग।">
+      Real weightage from the official CBSE 2026-27 subject-wise syllabus (Sec 2, Phase 2) — used to build, validate and scope every paper.</p>
+
+    <div class="syl-wrap">
+      <div class="syl-card">
+        <h4>Accountancy <span>Class XII · Code 055 · 80 marks</span></h4>
+        <table>
+          <tr><th>Unit</th><th class="th-right">Weightage</th></tr>
+          <tr><td>Accounting for Partnership Firms</td><td>36</td></tr>
+          <tr><td>Accounting for Companies</td><td>24</td></tr>
+          <tr><td>Analysis of Financial Statements</td><td>12</td></tr>
+          <tr><td>Cash Flow Statement</td><td>8</td></tr>
+        </table>
+        <div class="typo-bar" title="Typology: 40% / 30% / 30%">
+          <div class="t1">Remember 40%</div><div class="t2">Applying 30%</div><div class="t3">Analysing 30%</div>
+        </div>
+      </div>
+      <div class="syl-card">
+        <h4>Entrepreneurship <span>Class XII · Code 066 · 70 + 30</span></h4>
+        <table>
+          <tr><th>Unit</th><th class="th-right">Weightage</th></tr>
+          <tr><td>Entrepreneurial Opportunity</td><td>30</td></tr>
+          <tr><td>Entrepreneurial Planning</td><td>30</td></tr>
+          <tr><td>Enterprise Marketing</td><td>20</td></tr>
+          <tr><td>Enterprise Growth Strategies</td><td>20</td></tr>
+          <tr><td>Business Arithmetic · Resource Mobilization</td><td>20+20</td></tr>
+        </table>
+        <div class="typo-bar" title="Typology: 28.5% / 43% / 28.5%">
+          <div class="t1">Remember 28.5%</div><div class="t2">Applying 43%</div><div class="t3">Analysing 28.5%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="syl-card" style="margin-top:26px">
+      <h4><span data-en="Live scope check — honest by constitution (C1)" data-hi="लाइव स्कोप जाँच — संविधान से ईमानदार (C1)" style="color:var(--text);font-weight:700">Live scope check — honest by constitution (C1)</span></h4>
+      <p style="color:var(--mut);font-size:14.5px" data-en='Ask for a Class XII paper on "GST" and the agent answers: "NOT in Class XII syllabus — it belongs to Class XI Unit 1", flags the artifact NEEDS_REVIEW, and prints the scope note on the paper itself.'
+         data-hi='कक्षा XII का GST पेपर माँगिए — एजेंट कहेगा: "GST कक्षा XII सिलेबस में नहीं — यह कक्षा XI इकाई 1 का है", आर्टिफैक्ट पर NEEDS_REVIEW लगेगा और स्कोप नोट पेपर पर छपेगा।'>
+        Ask for a Class XII paper on "GST" and the agent answers: "NOT in Class XII syllabus — it belongs to Class XI Unit 1", flags the artifact NEEDS_REVIEW, and prints the scope note on the paper itself.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW ================= -->
+<section id="how">
+  <div class="wrap">
+    <div class="kicker" data-en="Pipeline" data-hi="पाइपलाइन">Pipeline</div>
+    <h2 data-en="Command → Deliberate → Deliver" data-hi="कमांड → विमर्श → डिलीवरी">Command → Deliberate → Deliver</h2>
+    <div class="steps">
+      <div class="step">
+        <h3 data-en="You command" data-hi="आप कमांड देते हैं">You command</h3>
+        <p data-en="Type or speak: “Class XII Accountancy paper on partnership, 80 marks.” Entities, language and intent are extracted deterministically."
+           data-hi="लिखें या बोलें: “कक्षा XII लेखाशास्त्र प्रश्नपत्र, साझेदारी, 80 अंक।” एंटिटी, भाषा और इरादा निर्णायक रूप से निकाले जाते हैं।">
+          Type or speak: “Class XII Accountancy paper on partnership, 80 marks.” Entities, language and intent are extracted deterministically.</p>
+      </div>
+      <div class="step">
+        <h3 data-en="Agents deliberate" data-hi="एजेंट विमर्श करते हैं">Agents deliberate</h3>
+        <p data-en="Academic, Quality, Research and more propose plans with evidence; critics raise concerns; revisions must address them. Bounded rounds, documented concessions."
+           data-hi="Academic, Quality, Research आदि प्रमाण सहित प्रस्ताव देते हैं; आलोचक चिंताएँ उठाते हैं; संशोधन उन्हें संबोधित करते हैं। सीमित राउंड, दर्ज सहमतियाँ।">
+          Academic, Quality, Research and more propose plans with evidence; critics raise concerns; revisions must address them. Bounded rounds, documented concessions.</p>
+      </div>
+      <div class="step">
+        <h3 data-en="Validators deliver" data-hi="वैलिडेटर डिलीवर करते हैं">Validators deliver</h3>
+        <p data-en="marks_total · section_structure · syllabus_scope · answer_key_match — all four must pass, or the artifact ships as NEEDS_REVIEW with the reason printed."
+           data-hi="marks_total · section_structure · syllabus_scope · answer_key_match — चारों पास हों, नहीं तो आर्टिफैक्ट NEEDS_REVIEW के साथ, कारण सहित जाता है।">
+          marks_total · section_structure · syllabus_scope · answer_key_match — all four must pass, or the artifact ships as NEEDS_REVIEW with the reason printed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LAUNCH / LOGIN ================= -->
+<section id="launch" class="launch">
+  <div class="wrap">
+    <div class="launch-card">
+      <div class="kicker" style="text-align:center" data-en="Launch access" data-hi="लॉन्च एक्सेस">Launch access</div>
+      <h2 data-en="Sign in with GitHub" data-hi="GitHub से साइन इन करें">Sign in with GitHub</h2>
+      <p data-en="Identity for the control center. Guest mode stays available — offline-first is not negotiable."
+         data-hi="कंट्रोल सेंटर के लिए पहचान। गेस्ट मोड उपलब्ध रहता है — ऑफ़लाइन-फर्स्ट विनिमेय नहीं है।">
+        Identity for the control center. Guest mode stays available — offline-first is not negotiable.</p>
+      <div class="login-row">
+        <a class="btn btn-gh" id="launchGh" href="/api/auth/github" style="padding:14px 26px;font-size:16px">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span data-en="Continue with GitHub" data-hi="GitHub से जारी रखें">Continue with GitHub</span>
+        </a>
+        <a class="btn btn-gold" href="/app.html" style="padding:14px 26px;font-size:16px"
+           data-en="Enter as guest →" data-hi="गेस्ट के रूप में प्रवेश →">Enter as guest →</a>
+      </div>
+      <div class="auth-state" id="authState">Checking sign-in status…</div>
+      <div class="login-hint" id="authHint" style="display:none">
+        <b data-en="To activate GitHub login:" data-hi="GitHub लॉगिन सक्रिय करने के लिए:">To activate GitHub login:</b><br>
+        1. Create an OAuth App at GitHub → Settings → Developer settings<br>
+        2. Homepage: <code id="hintHome">this site</code><br>
+        3. Callback: <code id="hintCb">…/api/auth/github/callback</code><br>
+        4. Save <code>client_id</code> + <code>client_secret</code> to <code>data/github_oauth.json</code>
+        <code>{"client_id":"…","client_secret":"…"}</code>
+      </div>
+      <div class="badges">
+        <div class="badge">🛡 <b>C1–C14</b> <span data-en="constitution" data-hi="संविधान">constitution</span></div>
+        <div class="badge">✅ <b>4/4</b> <span data-en="real validators" data-hi="वास्तविक वैलिडेटर">real validators</span></div>
+        <div class="badge">🔒 <b>HITL</b> <span data-en="approval gates" data-hi="अनुमोदन गेट">approval gates</span></div>
+        <div class="badge">💾 <b>SQLite</b> <span data-en="local memory" data-hi="स्थानीय मेमोरी">local memory</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="foot-in">
+    <div class="brand" style="font-size:15px"><span class="orb" style="width:18px;height:18px"></span> NEVERMIND</div>
+    <div class="foot-links">
+      <a href="/app.html" data-en="Control Center" data-hi="कंट्रोल सेंटर">Control Center</a>
+      <a href="#features" data-en="Features" data-hi="फीचर्स">Features</a>
+      <a href="/api/syllabus" data-en="Syllabus API" data-hi="सिलेबस API">Syllabus API</a>
+      <a href="/api/health" data-en="Health" data-hi="हेल्थ">Health</a>
+    </div>
+    <div>© 2026 NeverMind · <span data-en="offline-first multi-agent OS" data-hi="ऑफ़लाइन-फर्स्ट मल्टी-एजेंट OS">offline-first multi-agent OS</span></div>
+  </div>
+</footer>
+
+<script>
+/* ---------- i18n ---------- */
+function setLang(l){
+  document.documentElement.lang = l;
+  document.querySelectorAll("[data-en]").forEach(el=>{
+    const v = el.getAttribute(l === "hi" ? "data-hi" : "data-en");
+    if(v !== null) el.textContent = v;
+  });
+  document.getElementById("langEn").classList.toggle("on", l==="en");
+  document.getElementById("langHi").classList.toggle("on", l==="hi");
+  try{ localStorage.setItem("nm_lang", l); }catch(e){}
+}
+(function(){
+  let l = "en";
+  try{ l = localStorage.getItem("nm_lang") || "en"; }catch(e){}
+  if(l === "hi") setLang("hi");
+})();
+
+/* ---------- auth status ---------- */
+(async function(){
+  const stateEl = document.getElementById("authState");
+  const hint = document.getElementById("authHint");
+  const navSign = document.getElementById("navSign");
+  const origin = location.origin;
+  document.getElementById("hintHome").textContent = origin;
+  document.getElementById("hintCb").textContent = origin + "/api/auth/github/callback";
+  let cfg = {configured:false}, me = null;
+  try{ cfg = await (await fetch("/api/auth/status")).json(); }catch(e){}
+  try{
+    const r = await fetch("/api/auth/me");
+    if(r.ok) me = await r.json();
+  }catch(e){}
+  if(me && me.authenticated){
+    const u = me.user || {};
+    stateEl.innerHTML = '<span class="ok">✓ Signed in as <b>' +
+      (u.name || u.login || "user") + '</b></span> — <a href="/app.html" style="color:var(--gold)">open control center</a> · <a href="/api/auth/logout" style="color:var(--mut)">sign out</a>';
+    navSign.textContent = (u.name || u.login || "Account");
+    navSign.href = "/app.html";
+    hint.style.display = "none";
+  } else if(cfg.configured){
+    stateEl.innerHTML = '<span class="ok">● GitHub sign-in is live</span>';
+    hint.style.display = "none";
+  } else {
+    stateEl.innerHTML = '<span class="warn">● Guest mode ready — GitHub OAuth not configured yet</span>';
+    hint.style.display = "inline-block";
+    navSign.textContent = document.documentElement.lang === "hi" ? "गेस्ट" : "Guest";
+    navSign.href = "/app.html";
+  }
+})();
+</script>
+</body>
+</html>

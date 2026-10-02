@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeverMind — Multi-Agent Control Center</title>
+<style>
+:root{
+  --bg:#0a0e1a;--bg2:#0f1424;--bg3:#151b30;--line:#232b45;--txt:#e7ecff;--dim:#8b96c2;
+  --gold:#f0b429;--blue:#4da3ff;--green:#3ecf8e;--red:#ff5c77;--purple:#9b7bff;
+  --orange:#ff8c5a;--cyan:#39d0d8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;overflow:hidden}
+button{cursor:pointer;font-family:inherit}
+input,textarea,select{font-family:inherit}
+
+/* ---------- layout ---------- */
+#app{display:flex;flex-direction:column;height:100vh}
+header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:linear-gradient(180deg,#111731,#0c1122);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{font-weight:800;font-size:17px;letter-spacing:2px;color:var(--gold);display:flex;align-items:center;gap:8px}
+.logo .orb{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 32% 30%,#ffe9a8,#f0b429 45%,#7a5100);box-shadow:0 0 14px rgba(240,180,41,.55);animation:pulse 2.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(240,180,41,.4)}50%{box-shadow:0 0 20px rgba(240,180,41,.8)}}
+.hbadge{font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--bg3);border:1px solid var(--line);color:var(--dim)}
+.hbadge.on{border-color:var(--green);color:var(--green)}
+#modeBadge{font-size:10.5px;padding:2px 8px;border-radius:20px;background:rgba(77,163,255,.12);border:1px solid rgba(77,163,255,.5);color:var(--blue)}
+.spacer{flex:1}
+.hbtn{background:var(--bg3);border:1px solid var(--line);color:var(--txt);padding:5px 11px;border-radius:8px;font-size:12.5px}
+.hbtn:hover{border-color:var(--blue)}
+.hbtn.warn{border-color:rgba(255,92,119,.6);color:var(--red)}
+.hbtn.warn.armed{background:rgba(255,92,119,.18)}
+#langBtn{font-weight:700;min-width:64px}
+
+#main{display:flex;flex:1;overflow:hidden}
+nav{width:64px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;overflow-y:auto}
+.nv{width:52px;padding:8px 2px;border-radius:10px;background:transparent;border:none;color:var(--dim);font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.15s}
+.nv .ic{font-size:17px}
+.nv.on{background:rgba(77,163,255,.14);color:var(--blue)}
+.nv:hover{color:var(--txt)}
+.nv .dot{position:absolute;top:6px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--red)}
+#content{flex:1;overflow-y:auto;padding:16px;scroll-behavior:smooth}
+
+/* ---------- panels ---------- */
+.grid{display:grid;gap:14px}
+.panel{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px}
+.panel h3{font-size:12px;letter-spacing:1.4px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.panel h3 .cnt{background:var(--bg3);padding:1px 7px;border-radius:10px;font-size:10.5px;color:var(--txt)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.kpi{flex:1;min-width:110px;background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kpi .v{font-size:22px;font-weight:800}
+.kpi .l{font-size:10.5px;color:var(--dim);letter-spacing:.6px;text-transform:uppercase}
+.muted{color:var(--dim);font-size:12.5px}
+.mono{font-family:'Cascadia Code',Consolas,monospace;font-size:12px}
+
+/* ---------- command ---------- */
+#cmdBox{background:linear-gradient(135deg,#131a33,#0e1326);border:1px solid #2b3766;border-radius:16px;padding:14px;box-shadow:0 6px 28px rgba(0,0,0,.35)}
+#cmdInput{width:100%;background:transparent;border:none;color:var(--txt);font-size:17px;outline:none;resize:none;min-height:54px;line-height:1.45}
+#cmdInput::placeholder{color:#59639a}
+.cmdrow{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+#sendBtn{background:linear-gradient(135deg,#f0b429,#e08900);color:#1a1200;border:none;font-weight:800;padding:9px 20px;border-radius:10px;font-size:14px}
+#sendBtn:disabled{opacity:.45;cursor:not-allowed}
+#micBtn{width:42px;height:42px;border-radius:50%;background:var(--bg3);border:2px solid var(--line);font-size:17px;color:var(--txt)}
+#micBtn.rec{border-color:var(--red);color:var(--red);animation:recp 1s infinite}
+@keyframes recp{0%,100%{box-shadow:0 0 0 0 rgba(255,92,119,.5)}50%{box-shadow:0 0 0 9px rgba(255,92,119,0)}}
+#ttsBtn{width:42px;height:42px;border-radius:10px;background:var(--bg3);border:2px solid var(--line);font-size:15px;color:var(--dim)}
+#ttsBtn.on{border-color:var(--green);color:var(--green)}
+.chip{background:var(--bg3);border:1px solid var(--line);color:var(--dim);padding:5px 10px;border-radius:20px;font-size:11.5px;text-align:left}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+#sugRow{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+
+/* status pill */
+.st{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700;letter-spacing:.5px}
+.st.COMPLETED,.st.TRUSTED{background:rgba(62,207,142,.15);color:var(--green);border:1px solid rgba(62,207,142,.4)}
+.st.COMPLETED_WITH_NOTES,.st.NEEDS_REVIEW,.st.WAITING_APPROVAL,.st.DELIBERATING,.st.EXECUTING,.st.VERIFYING{background:rgba(240,180,41,.12);color:var(--gold);border:1px solid rgba(240,180,41,.45)}
+.st.FAILED,.st.BLOCKED,.st.CLARIFY_NEEDED,.st.REWORK{background:rgba(255,92,119,.12);color:var(--red);border:1px solid rgba(255,92,119,.45)}
+.st.CREATED,.st.DECIDED,.st.PLANNED,.st.DELIVERING{background:rgba(77,163,255,.12);color:var(--blue);border:1px solid rgba(77,163,255,.4)}
+
+/* ---------- deliverable ---------- */
+#deliver{margin-top:14px;display:none}
+.md{background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:14px;line-height:1.6;white-space:pre-wrap;font-size:13.5px;max-height:440px;overflow-y:auto}
+.art{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-top:8px}
+.art .nm{flex:1;font-weight:600;font-size:13px;word-break:break-all}
+.art a{color:var(--blue);text-decoration:none;font-size:12px;border:1px solid var(--line);padding:4px 10px;border-radius:8px}
+.art a:hover{border-color:var(--blue)}
+.art .dlbtn{background:none;font:inherit;color:var(--blue);cursor:pointer;font-size:12px;letter-spacing:.4px;border:1px solid var(--line);padding:4px 10px;border-radius:8px}
+.art .dlbtn:hover{border-color:var(--blue)}
+.art .dlbtn.ok{border-color:#3ddc97;color:#3ddc97}
+.art .sz{font-size:11px;color:#59639a;font-family:monospace}
+
+/* ---------- files screen (proper file manager — not just an icon) ---------- */
+.fbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:4px 0 12px}
+.fbar input{background:var(--bg3);border:1px solid var(--line);border-radius:9px;color:var(--txt);padding:8px 12px;font-size:13px;min-width:230px;flex:1;outline:none}
+.fbar input:focus{border-color:var(--blue)}
+.fbar select{background:var(--bg3);border:1px solid var(--line);border-radius:9px;color:var(--txt);padding:8px 10px;font-size:13px;outline:none}
+.fnote{display:flex;gap:10px;background:rgba(77,163,255,.07);border:1px solid rgba(77,163,255,.35);border-radius:11px;padding:11px 13px;font-size:12.7px;line-height:1.6;color:#c2cbef;margin-bottom:13px}
+.fnote b{color:var(--blue)}
+#fTbl .lnk{color:var(--blue);text-decoration:none;font-family:monospace;font-size:11.5px}
+#fTbl .lnk:hover{text-decoration:underline}
+#fTbl .acts{white-space:nowrap;display:flex;gap:6px;justify-content:flex-end}
+#fTbl .acts .dlbtn{padding:4px 9px;font-size:11px}
+#fTbl tr.dim td{opacity:.6}
+#fModal{position:fixed;inset:0;background:rgba(4,7,16,.72);z-index:120;display:none;align-items:center;justify-content:center;padding:18px}
+#fModal .fpanel{background:var(--bg2);border:1px solid var(--line);border-radius:14px;width:min(880px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.6)}
+#fModal .fhead{display:flex;gap:10px;align-items:center;padding:12px 15px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#fModal .fhead .nmw{font-weight:700;font-size:13.5px;word-break:break-all}
+#fModal .fhead .pw{font-size:11px;color:#59639a;font-family:monospace;width:100%}
+#fModal pre{margin:0;padding:15px;overflow:auto;flex:1;white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.6;color:#cdd5f7;font-family:'Cascadia Code',Consolas,monospace}
+
+/* ---------- live feed ---------- */
+#feed{display:flex;flex-direction:column;gap:8px}
+.ev{border-left:3px solid var(--line);background:var(--bg3);border-radius:0 10px 10px 0;padding:8px 12px;font-size:12.8px;animation:slidein .25s ease}
+@keyframes slidein{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.ev .ts{color:#59639a;font-size:10.5px;font-family:monospace}
+.ev.PROPOSAL{border-color:var(--blue)}
+.ev.CHALLENGE{border-color:var(--orange)}
+.ev.REVISION{border-color:var(--purple)}
+.ev.CONSENSUS{border-color:var(--green)}
+.ev.ESCALATE,.ev.FAULT{border-color:var(--red)}
+.ev.SYSTEM,.ev.CONCERN{border-color:var(--cyan)}
+.ev .who{font-weight:800;font-size:11.5px;letter-spacing:.6px;text-transform:uppercase}
+.ev .body{margin-top:3px;color:#cdd5f7;white-space:pre-wrap;word-break:break-word}
+.ev .meta{margin-top:5px;display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:10px;background:rgba(77,163,255,.12);border:1px solid rgba(77,163,255,.35);color:var(--blue);padding:1px 7px;border-radius:12px}
+.tag.ev{background:rgba(62,207,142,.1);border-color:rgba(62,207,142,.35);color:var(--green)}
+
+/* ---------- agents ---------- */
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px}
+.acard{background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:13px;position:relative;overflow:hidden}
+.acard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.acard .top{display:flex;align-items:center;gap:9px}
+.acard .ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.acard .nm{font-weight:800;font-size:14.5px}
+.acard .rl{font-size:10.5px;color:var(--dim);letter-spacing:.4px}
+.acard .ch{margin-top:9px;font-size:11.5px;color:#a9b3dd;line-height:1.5}
+.acard .dm{margin-top:8px;display:flex;gap:5px;flex-wrap:wrap}
+.dtag{font-size:9.5px;padding:1px 6px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--dim)}
+
+/* ---------- table ---------- */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{color:var(--dim);text-align:left;font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;padding:7px 9px;border-bottom:1px solid var(--line)}
+td{padding:8px 9px;border-bottom:1px solid rgba(35,43,69,.55);vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ---------- graph ---------- */
+#kgWrap{position:relative;background:var(--bg3);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+#kgCanvas{display:block;width:100%;height:460px}
+#kgInfo{position:absolute;top:10px;right:10px;background:rgba(10,14,26,.92);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;max-width:270px;display:none}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:9px;font-size:11px;color:var(--dim)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+
+/* ---------- approvals ---------- */
+.appr{background:var(--bg3);border:1px solid rgba(240,180,41,.45);border-radius:12px;padding:13px;margin-bottom:10px}
+.appr .hd{display:flex;gap:9px;align-items:center;font-weight:700}
+.appr .pv{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px;margin-top:9px;font-size:12px;white-space:pre-wrap;color:#c2cbef}
+.appr .btns{display:flex;gap:8px;margin-top:10px}
+.btn{border:none;padding:7px 16px;border-radius:9px;font-weight:700;font-size:12.5px}
+.btn.ok{background:rgba(62,207,142,.18);color:var(--green);border:1px solid rgba(62,207,142,.5)}
+.btn.no{background:rgba(255,92,119,.14);color:var(--red);border:1px solid rgba(255,92,119,.5)}
+
+/* ---------- rsi ---------- */
+.rsi{background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.rsi .st2{font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:12px}
+.st2.candidate{background:rgba(240,180,41,.15);color:var(--gold)}
+.st2.promoted{background:rgba(62,207,142,.15);color:var(--green)}
+.st2.rejected{background:rgba(255,92,119,.15);color:var(--red)}
+.st2.testing{background:rgba(77,163,255,.15);color:var(--blue)}
+
+/* ---------- settings ---------- */
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;color:var(--dim);letter-spacing:.7px;text-transform:uppercase;margin-bottom:5px}
+.field input,.field select{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:9px;color:var(--txt);padding:9px 11px;font-size:13.5px;outline:none}
+.field input:focus,.field select:focus{border-color:var(--blue)}
+.constline{display:flex;gap:9px;padding:7px 0;border-bottom:1px solid rgba(35,43,69,.5);font-size:12.7px;line-height:1.5}
+.constline b{color:var(--gold);min-width:30px}
+
+/* ---------- mobile ---------- */
+@media(max-width:760px){
+  nav{width:100%;height:auto;flex-direction:row;order:2;border-right:none;border-top:1px solid var(--line);padding:4px;overflow-x:auto}
+  #main{flex-direction:column}
+  #content{padding:10px;padding-bottom:70px;order:1}
+  .nv{width:auto;flex:1;min-width:56px}
+  header{gap:8px;padding:8px 10px}
+  .hbadge{display:none}
+}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#273156;border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a2140;border:1px solid var(--line);color:var(--txt);padding:10px 18px;border-radius:11px;font-size:13px;z-index:99;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw}
+
+/* ---------- wake-up banner (auto-recovery) ---------- */
+#wakeBanner{position:fixed;top:0;left:0;right:0;z-index:120;display:none;
+  align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+  background:linear-gradient(90deg,#3a2c05,#5a4308,#3a2c05);border-bottom:1px solid var(--gold);
+  color:#ffe9a8;padding:9px 14px;font-size:13.5px;font-weight:600;
+  box-shadow:0 4px 24px rgba(0,0,0,.55);animation:wakepulse 1.6s infinite}
+@keyframes wakepulse{0%,100%{opacity:.92}50%{opacity:1}}
+#wakeBanner .orb{width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 32% 30%,#ffe9a8,#f0b429);display:inline-block;animation:spin 1.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#wakeBanner .try{font-weight:400;font-size:11.5px;color:#d8c48a;font-family:monospace}
+#wakeBanner button{background:rgba(255,255,255,.12);border:1px solid rgba(255,233,168,.5);
+  color:#ffe9a8;padding:3px 12px;border-radius:8px;font-size:12px}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="logo"><span class="orb"></span>NEVERMIND</div>
+  <span class="hbadge" id="sseBadge">● CONNECTING</span>
+  <span id="modeBadge">SEMI_AUTONOMOUS</span>
+  <span class="hbadge" id="killBadge" style="display:none">🛑 KILL ACTIVE</span>
+  <div class="spacer"></div>
+  <button class="hbtn" id="langBtn" title="Interface language">हिंदी / EN</button>
+  <button class="hbtn" id="pauseBtn">⏸ Pause</button>
+  <button class="hbtn warn" id="killBtn">🛑 Emergency Stop</button>
+</header>
+<div id="main">
+<nav id="nav"></nav>
+<div id="content">
+
+<!-- ============ COMMAND ============ -->
+<section class="view" id="view-command">
+  <div id="cmdBox">
+    <textarea id="cmdInput" rows="2" placeholder='Give a goal — "Create a Class XII Accountancy question paper on partnership, 80 marks" … (voice 🎤 supported)'></textarea>
+    <div class="cmdrow">
+      <button id="micBtn" title="Voice command">🎤</button>
+      <button id="ttsBtn" title="Speak results aloud">🔊</button>
+      <button id="sendBtn">RUN AUTONOMOUSLY →</button>
+      <span class="muted" id="cmdLang"></span>
+    </div>
+    <div id="sugRow"></div>
+  </div>
+
+  <div id="deliver">
+    <div class="panel" style="margin-top:14px">
+      <h3>📦 <span data-i18n="deliverable">Deliverable</span> <span class="cnt" id="dStatus"></span> <div class="spacer"></div><span class="muted" id="dMeta"></span></h3>
+      <div class="md" id="dSummary"></div>
+      <div id="dArts"></div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:14px">
+    <div class="panel" style="flex:2;min-width:280px">
+      <h3>📡 <span data-i18n="livefeed">Live deliberation feed</span> <span class="cnt" id="feedCnt">0</span></h3>
+      <div id="feed"></div>
+    </div>
+    <div class="panel" style="flex:1;min-width:240px">
+      <h3>⏱ <span data-i18n="pipeline">Pipeline</span></h3>
+      <div id="pipeline"></div>
+      <h3 style="margin-top:16px">🎫 <span data-i18n="approvals">Approvals</span> <span class="cnt" id="apprCnt">0</span></h3>
+      <div id="apprMini"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AGENTS ============ -->
+<section class="view" id="view-agents" style="display:none">
+  <div class="panel">
+    <h3>🤖 <span data-i18n="agents">Agent roster — the mastermind</span></h3>
+    <div class="agrid" id="agentGrid"></div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h3>📜 <span data-i18n="const">Constitution — Control Plane (immutable)</span></h3>
+    <div id="constList"></div>
+  </div>
+</section>
+
+<!-- ============ SKILLS / KG ============ -->
+<section class="view" id="view-skills" style="display:none">
+  <div class="panel">
+    <h3>🕸 <span data-i18n="kg">Skill Knowledge Graph</span> <span class="cnt" id="kgCnt"></span></h3>
+    <div id="kgWrap">
+      <canvas id="kgCanvas"></canvas>
+      <div id="kgInfo"></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:#f0b429"></i>agent</span>
+      <span><i style="background:#4da3ff"></i>skill</span>
+      <span><i style="background:#3ecf8e"></i>domain</span>
+      <span><i style="background:#9b7bff"></i>validator</span>
+      <span><i style="background:#ff8c5a"></i>tool</span>
+      <span><i style="background:#39d0d8"></i>knowledge</span>
+      <span><i style="background:#ff5c77"></i>artifact kind</span>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h3>🛠 <span data-i18n="skills">Skill registry</span> <span class="cnt" id="skillCnt"></span></h3>
+    <div style="overflow-x:auto"><table id="skillTbl"></table></div>
+  </div>
+</section>
+
+<!-- ============ MEMORY ============ -->
+<section class="view" id="view-memory" style="display:none">
+  <div class="row">
+    <div class="kpi"><div class="v" id="mEpi">0</div><div class="l">Episodic</div></div>
+    <div class="kpi"><div class="v" id="mSem">0</div><div class="l">Semantic</div></div>
+    <div class="kpi"><div class="v" id="mPro">0</div><div class="l">Procedural</div></div>
+    <div class="kpi"><div class="v" id="mPerf">0</div><div class="l">Performance</div></div>
+    <div class="kpi"><div class="v" id="mDec">0</div><div class="l">Decision</div></div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h3>🧠 <span data-i18n="memory">Memory explorer</span></h3>
+    <div style="overflow-x:auto"><table id="memTbl"></table></div>
+  </div>
+</section>
+
+<!-- ============ RSI ============ -->
+<section class="view" id="view-rsi" style="display:none">
+  <div class="panel">
+    <h3>🧬 <span data-i18n="rsi">RSI Lab — propose → sandbox → golden tests → promote/reject</span></h3>
+    <p class="muted" id="goldenList" style="margin-bottom:10px"></p>
+    <div id="rsiList"></div>
+  </div>
+</section>
+
+<!-- ============ APPROVALS ============ -->
+<section class="view" id="view-approvals" style="display:none">
+  <div class="panel">
+    <h3>🎫 <span data-i18n="appr2">Approval queue (L4 actions)</span> <span class="cnt" id="apprCnt2">0</span></h3>
+    <div id="apprFull"></div>
+  </div>
+</section>
+
+<!-- ============ AUDIT ============ -->
+<section class="view" id="view-audit" style="display:none">
+  <div class="panel">
+    <h3>🔍 <span data-i18n="audit">Audit & decisions — full traceability</span></h3>
+    <div style="overflow-x:auto"><table id="audTbl"></table></div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h3>📁 <span data-i18n="tasks">Task history</span></h3>
+    <div style="overflow-x:auto"><table id="taskTbl"></table></div>
+  </div>
+</section>
+
+<!-- ============ FILES (download library) ============ -->
+<section class="view" id="view-files" style="display:none">
+  <div class="row">
+    <div class="kpi"><div class="v" id="fCount">0</div><div class="l">Files</div></div>
+    <div class="kpi"><div class="v" id="fBytes">0</div><div class="l">Total size</div></div>
+    <div class="kpi" style="flex:3;min-width:260px"><div class="v mono" id="fDir" style="font-size:12.5px;font-weight:600;word-break:break-all">—</div><div class="l">Server storage (permanent copy)</div></div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h3>📁 <span data-i18n="files">Files & downloads — every artifact, one place</span> <span class="cnt" id="fCnt2">0</span></h3>
+    <div class="fnote"><span>💡</span><div data-i18n="fNote">Every file exists in TWO places: (1) the <b>server folder shown above</b> — permanent, never lost; (2) pressing <b>DOWNLOAD</b> saves a copy to <b>your device</b>, inside your browser's Downloads folder (Chrome/Edge: Ctrl+J, Firefox: Ctrl+Shift+Y). <b>VIEW</b> reads the file here without downloading.</div></div>
+    <div class="fbar">
+      <input id="fQ" data-i18n-ph="fSearch" placeholder="Search file name, kind or task id…">
+      <select id="fKind"><option value="">all kinds</option></select>
+    </div>
+    <div style="overflow-x:auto"><table id="fTbl"></table></div>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section class="view" id="view-settings" style="display:none">
+  <div class="panel" style="max-width:640px">
+    <h3>⚙️ <span data-i18n="settings">Settings</span></h3>
+    <div class="field"><label>Interface / default language</label>
+      <select id="setLang"><option value="en">English</option><option value="hi">हिंदी (Hindi)</option></select></div>
+    <div class="field"><label>Autonomy mode</label>
+      <select id="setMode">
+        <option>ASSISTED</option><option>SEMI_AUTONOMOUS</option>
+        <option>AUTONOMOUS</option><option>AUTONOMOUS_PROACTIVE</option>
+      </select></div>
+    <div class="field"><label>Deliberation max rounds (1–5)</label>
+      <input type="number" id="setRounds" min="1" max="5"></div>
+    <hr style="border-color:var(--line);margin:16px 0">
+    <div class="field"><label>LLM provider — OpenAI-compatible base URL (optional upgrade)</label>
+      <input id="setLlmUrl" placeholder="https://api.openai.com/v1  (or OpenRouter / Gemini-compatible)"></div>
+    <div class="field"><label>Model</label><input id="setLlmModel" placeholder="gpt-4o-mini"></div>
+    <div class="field"><label>API key — powers LLM prose <b>and 🎤 Whisper voice</b> <span class="muted" id="keyState"></span></label>
+      <input id="setLlmKey" type="password" placeholder="sk-… (leave blank to keep current)"></div>
+    <p class="muted" style="margin-bottom:13px">Without a key the system runs on the built-in deterministic engine — all validators, math and gates stay active — and the 🎤 falls back to browser speech input. With an OpenAI key, the mic records → <b>OpenAI Whisper</b> transcribes → text lands in the command box. Keys stay server-side (never exposed back to the browser).</p>
+    <button class="hbtn" id="saveSet" style="background:var(--blue);color:#041022;border:none;font-weight:800;padding:9px 22px">SAVE SETTINGS</button>
+  </div>
+</section>
+
+</div>
+</div>
+</div>
+<div id="toast"></div>
+<div id="fModal" role="dialog" aria-modal="true">
+  <div class="fpanel">
+    <div class="fhead">
+      <span class="nmw" id="fmName"></span>
+      <div class="spacer"></div>
+      <button type="button" class="dlbtn" id="fmDl" style="background:none;font:inherit;color:var(--blue);border:1px solid var(--line);padding:5px 12px;border-radius:8px;font-size:12px">DOWNLOAD</button>
+      <button type="button" class="dlbtn" id="fmClose" style="background:none;font:inherit;color:var(--dim);border:1px solid var(--line);padding:5px 12px;border-radius:8px;font-size:12px">✕ CLOSE</button>
+      <span class="pw" id="fmPath"></span>
+    </div>
+    <pre id="fmBody">…</pre>
+  </div>
+</div>
+<div id="wakeBanner" role="status" aria-live="polite">
+  <span class="orb"></span>
+  <span id="wakeTxt">💤 Connection asleep — auto-waking…</span>
+  <span class="try" id="wakeTry"></span>
+  <button id="wakeNowBtn">Wake now</button>
+</div>
+
+<script>
+'use strict';
+/* ================= state ================= */
+const S = {
+  lang: localStorage.getItem('om_lang') || 'en',
+  ui: 'command',
+  tts: false,
+  boot: null,
+  kg: null,
+  live: [],
+  currentTask: null,
+  recognizing: false,
+};
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast = (m, ms=3200) => { const t=$('#toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none', ms); };
+
+/* ================= i18n ================= */
+const I18N = {
+  en: {
+    deliverable:'Deliverable', livefeed:'Live deliberation feed', pipeline:'Pipeline',
+    approvals:'Approvals', agents:'Agent roster — the mastermind', const:'Constitution — Control Plane (immutable)',
+    kg:'Skill Knowledge Graph', skills:'Skill registry', memory:'Memory explorer',
+    rsi:'RSI Lab — propose → sandbox → golden tests → promote/reject', appr2:'Approval queue (L4 actions)',
+    audit:'Audit & decisions — full traceability', tasks:'Task history', settings:'Settings',
+    files:'Files & downloads — every artifact, one place',
+    fNote:'Every file exists in TWO places: (1) the <b>server folder shown above</b> — permanent, never lost; (2) pressing <b>DOWNLOAD</b> saves a copy to <b>your device</b>, inside your browser\u2019s Downloads folder (Chrome/Edge: Ctrl+J, Firefox: Ctrl+Shift+Y). <b>VIEW</b> reads the file here without downloading.',
+    fSearch:'Search file name, kind or task id…',
+    placeholder:'Give a goal — "Create a Class XII Accountancy question paper on partnership, 80 marks" … (voice 🎤 supported)',
+    run:'RUN AUTONOMOUSLY →',
+    sugg:['Class XII Accountancy question paper on partnership, 80 marks',
+          'Worksheet on Marketing for class 11 BST',
+          'Analyse these marks: 45, 67, 78, 52, 31, 88, 92',
+          'Draft a notice for the annual function',
+          'Remedial plan for weak students in company accounts',
+          'Send an email to the principal about the annual function'],
+  },
+  hi: {
+    deliverable:'डिलिवरेबल', livefeed:'लाइव विचार-विमर्श फ़ीड', pipeline:'पाइपलाइन',
+    approvals:'अनुमतियाँ', agents:'एजेंट टोली — मास्टरमाइंड', const:'संविधान — कंट्रोल प्लेन (अपरिवर्तनीय)',
+    kg:'स्किल नॉलेज ग्राफ', skills:'स्किल रजिस्ट्री', memory:'मेमोरी एक्सप्लोरर',
+    rsi:'RSI लैब — प्रस्ताव → सैंडबॉक्स → गोल्डन टेस्ट → प्रमोट/रिजेक्ट', appr2:'अनुमति कतार (L4 कार्रवाइयाँ)',
+    audit:'ऑडिट व निर्णय — पूरा ट्रेस', tasks:'कार्य इतिहास', settings:'सेटिंग्स',
+    files:'फ़ाइलें व डाउनलोड — हर आर्टिफैक्ट, एक जगह',
+    fNote:'हर फ़ाइल <b>दो जगह</b> रहती है: (1) <b>ऊपर दिया सर्वर फ़ोल्डर</b> — स्थायी, कभी खोती नहीं; (2) <b>DOWNLOAD</b> दबाने पर <b>आपके डिवाइस</b> के ब्राउज़र Downloads फ़ोल्डर में कॉपी सेव होती है (Chrome/Edge: Ctrl+J)। <b>VIEW</b> बिना डाउनलोड किए यहीं पढ़ता है।',
+    fSearch:'फ़ाइल नाम, प्रकार या कार्य id खोजें…',
+    placeholder:'अपना लक्ष्य दें — "कक्षा 12 अकाउंटेंसी का पार्टनरशिप पर 80 अंक का प्रश्नपत्र बनाओ" … (voice 🎤 उपलब्ध)',
+    run:'स्वायत्त चलाएँ →',
+    sugg:['कक्षा 12 अकाउंटेंसी पार्टनरशिप पर 80 अंक का प्रश्नपत्र',
+          'कक्षा 11 BST मार्केटिंग पर worksheet',
+          'इन मार्क्स का विश्लेषण करो: 45, 67, 78, 52, 31, 88, 92',
+          'वार्षिकोत्सव के लिए notice का draft बनाओ',
+          'कंपनी अकाउंट्स में कमजोर बच्चों के लिए remedial plan',
+          'प्रिंसिपल को वार्षिकोत्सव के बारे में email भेजो'],
+  }
+};
+const T = () => I18N[S.lang] || I18N.en;
+function applyI18n(){
+  $('#cmdInput').placeholder = T().placeholder;
+  $('#sendBtn').textContent = T().run;
+  $$('[data-i18n]').forEach(el=>{ const k=el.dataset.i18n; if(T()[k]) el.innerHTML=T()[k]; });
+  $$('[data-i18n-ph]').forEach(el=>{ const k=el.dataset.i18nPh; if(T()[k]) el.placeholder=T()[k]; });
+  const row = $('#sugRow'); row.innerHTML='';
+  T().sugg.forEach(s=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=s;
+    b.onclick=()=>{ $('#cmdInput').value=s; $('#cmdInput').focus(); }; row.appendChild(b); });
+  $('#cmdLang').textContent = S.lang==='hi' ? 'भाषा: हिंदी — अंग्रेज़ी दोनों समझ' : 'Language: English — Hindi also understood';
+}
+
+/* ================= nav ================= */
+const VIEWS = [
+  ['command','🧠','Command'], ['files','📁','Files'], ['agents','🤖','Agents'],
+  ['skills','🕸','Skills'], ['memory','🧠','Memory'], ['rsi','🧬','RSI'],
+  ['approvals','🎫','Approve'], ['audit','🔍','Audit'], ['settings','⚙️','Config'],
+];
+function buildNav(){
+  const nav = $('#nav'); nav.innerHTML='';
+  VIEWS.forEach(([id,ic,lbl])=>{
+    const b=document.createElement('button'); b.className='nv'+(S.ui===id?' on':''); b.dataset.v=id;
+    b.innerHTML=`<span class="ic">${ic}</span>${lbl}`;
+    b.onclick=()=>show(id);
+    nav.appendChild(b);
+  });
+}
+function show(id){
+  S.ui=id;
+  $$('.view').forEach(v=>v.style.display='none');
+  $('#view-'+id).style.display='block';
+  $$('.nv').forEach(n=>n.classList.toggle('on', n.dataset.v===id));
+  if(id==='skills') drawKG();
+  if(id==='memory') loadMemory();
+  if(id==='rsi') loadRSI();
+  if(id==='approvals') loadApprovals();
+  if(id==='audit') loadAudit();
+  if(id==='files') loadFiles();
+  if(id==='settings') fillSettings();
+}
+
+/* ================= api ================= */
+async function api(path, opts){
+  try{
+    const r = await fetch(path, opts);
+    return await r.json();
+  }catch(e){
+    // network-level failure → the server is likely asleep; start auto-wake
+    startWakeLoop('💤 Server not responding — auto-waking…');
+    return {error:e.message};
+  }
+}
+const post = (path, body) => api(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{})});
+
+/* ================= SSE ================= */
+let es=null, wakeTimer=null, wakeN=0, sseErrTimer=null, sseDown=false;
+function connectSSE(){
+  if(es){ es.close(); }
+  es = new EventSource('/api/events');
+  es.onopen = ()=>{
+    // connection restored → cancel any pending wake banner
+    clearTimeout(sseErrTimer);
+    if(sseDown || wakeTimer){ sseDown=false; stopWakeLoop(true); }
+    $('#sseBadge').textContent='● LIVE'; $('#sseBadge').classList.add('on');
+  };
+  es.onerror = ()=>{
+    $('#sseBadge').textContent='● RECONNECTING'; $('#sseBadge').classList.remove('on');
+    // EventSource retries natively; only escalate to the wake banner if it persists
+    if(sseDown || sseErrTimer) return;
+    sseErrTimer = setTimeout(()=>{ sseDown=true; startWakeLoop('💤 Signal lost — auto-waking…'); }, 4000);
+  };
+  es.onmessage = ev=>{
+    let e; try{ e=JSON.parse(ev.data); }catch(_){ return; }
+    if(e.type==='hello') return;
+    handleEvent(e);
+  };
+}
+
+/* ---- wake loop: poll /api/health until the system answers, then self-heal ---- */
+function startWakeLoop(txt, onWake){
+  $('#wakeTxt').textContent = txt || '💤 System asleep — auto-waking…';
+  $('#wakeBanner').style.display='flex';
+  if(wakeTimer) return;
+  wakeN=0;
+  const heal = onWake || (()=>{
+    stopWakeLoop(true);
+    connectSSE();
+    refreshBootstrap();
+    toast('☀️ System awake again — welcome back');
+    if(S.ui==='skills'){ S.kg=null; drawKG(); }
+    if(S.ui==='memory') loadMemory();
+    if(S.ui==='rsi') loadRSI();
+    if(S.ui==='audit') loadAudit();
+  });
+  const tick = async ()=>{
+    wakeN++;
+    $('#wakeTry').textContent = `attempt #${wakeN} · ${new Date().toLocaleTimeString()}`;
+    try{
+      const ctl = new AbortController();
+      const to = setTimeout(()=>ctl.abort(), 2500);
+      const r = await fetch('/api/health', {cache:'no-store', signal: ctl.signal});
+      clearTimeout(to);
+      if(r.ok){ heal(); }
+    }catch(e){ /* still asleep — next tick */ }
+  };
+  tick();
+  wakeTimer = setInterval(tick, 3000);
+}
+function stopWakeLoop(hide){
+  if(wakeTimer){ clearInterval(wakeTimer); wakeTimer=null; }
+  sseDown=false; clearTimeout(sseErrTimer);
+  if(hide){ $('#wakeBanner').style.display='none'; $('#wakeTry').textContent=''; }
+}
+$('#wakeNowBtn').onclick = ()=>{ $('#wakeTry').textContent=' forcing wake…'; wakeN--; };
+function handleEvent(e){
+  const p = e.payload||{};
+  // Ignore events from other tasks (SSE is a global broadcast)
+  const systemic = ['rsi.update','system.control','approval.required','approval.granted',
+                    'approval.resolved','task.created'].includes(e.type);
+  if(!systemic && e.task_id && S.currentTask && e.task_id !== S.currentTask) return;
+  switch(e.type){
+    case 'task.created':
+      S.currentTask = e.task_id;
+      $('#deliver').style.display='none';
+      $('#feed').innerHTML=''; S.live=[];
+      addEv('SYSTEM','user','archon', (p.command||''), {tag:'task '+e.task_id});
+      setPipeline('CREATED'); break;
+    case 'task.perceive':
+      addEv('SYSTEM','nlu','archon', 'Intent: '+p.intent+'\nEntities: '+JSON.stringify(p.entities), {});
+      setPipeline('OBSERVE'); break;
+    case 'task.decision':
+      addEv('SYSTEM','decision-engine','archon',
+        'Decision: L'+p.autonomy_level+' ('+(p.mode_label||'')+'), confidence='+p.confidence+', risk='+p.risk+
+        (p.requires_approval?' → APPROVAL REQUIRED (L4, C7)':'')+'\n'+(p.reasoning||''), {tag:'C10 audit'});
+      setPipeline('DECIDE'); break;
+    case 'task.plan':
+      addEv('SYSTEM','archon','all', 'PLAN → specialists: '+p.specialists.join(', ')+'\nskills: '+p.skills.join(', '), {});
+      setPipeline('PLAN'); break;
+    case 'deliberation.message': {
+      if(p.task_id && S.currentTask && p.task_id!==S.currentTask) {}
+      addEv(p.mtype, p.from, p.to, p.body, p.payload||{});
+      if(p.mtype==='CONSENSUS') setPipeline('CONSENSUS');
+      break; }
+    case 'task.quality':
+      addEv('SYSTEM','janus','user', 'Quality report: '+p.status+' score='+p.overall+
+        (p.hard_failures&&p.hard_failures.length? '\nHARD FAIL: '+p.hard_failures.join('; '):'')+
+        (p.warnings&&p.warnings.length? '\nwarnings: '+p.warnings.join('; '):''), {tag:'C6 gates'});
+      setPipeline('VERIFY'); break;
+    case 'approval.required':
+      toast('🎫 Approval required — L4 action waiting for you');
+      loadApprovals(); renderApprovalsMini();
+      if(S.ui==='command') renderApprovalsMini();
+      break;
+    case 'task.completed':
+      setPipeline('DONE');
+      if(S.ui==='files') loadFiles();
+      showDeliverable(e.task_id);
+      refreshBootstrap();
+      speakResult(p.summary||'');
+      break;
+    case 'task.blocked': case 'task.failed': case 'task.clarify':
+      setPipeline(p.type==='task.clarify'?'CLARIFY':'HALTED');
+      addEv('ESCALATE','archon','user', p.message||p.question||p.error, {});
+      showDeliverable(e.task_id);
+      refreshBootstrap();
+      break;
+    case 'rsi.update':
+      if(S.ui==='rsi') loadRSI();
+      break;
+    case 'system.control':
+      if(p.kill){ $('#killBadge').style.display='inline'; }
+      else { $('#killBadge').style.display='none'; }
+      break;
+    case 'task.error':
+      addEv('FAULT','skill','archon', 'Tool/skill error: '+(p.error||''), {skill:p.skill||''});
+      break;
+    default: break;
+  }
+}
+
+const STAGES=['CREATED','OBSERVE','DECIDE','PLAN','CONSENSUS','EXECUTE','VERIFY','DONE'];
+function setPipeline(cur){
+  const el=$('#pipeline');
+  el.innerHTML = STAGES.map(s=>{
+    const i=STAGES.indexOf(s), ci=STAGES.indexOf(cur);
+    const done = ci>=0 && i<ci, now = s===cur;
+    const col = done?'var(--green)':now?'var(--gold)':'var(--dim)';
+    const ic = done?'✔':now?'▸':'·';
+    return `<div style="display:flex;gap:8px;align-items:center;padding:4px 2px;color:${col};font-size:12.5px">
+      <span style="width:16px;text-align:center">${ic}</span><b style="font-weight:${now?800:500}">${s}</b>
+      ${now?'<span class="muted" style="margin-left:auto">…</span>':''}</div>`;
+  }).join('');
+}
+
+function addEv(mtype, from, to, body, meta){
+  S.live.push({mtype, from, to, body, meta});
+  if(S.live.length>250) S.live.shift();
+  const feed=$('#feed');
+  const cls = ['PROPOSAL','CHALLENGE','REVISION','CONSENSUS','ESCALATE','FAULT','SYSTEM','CONCERN','REQUEST'].includes(mtype)?mtype:'SYSTEM';
+  const colors={archon:'#f0b429',academic:'#4da3ff',admin:'#9b7bff',research:'#3ecf8e',data:'#ff8c5a',quality:'#ff5c77'};
+  const col=colors[from]||'#8b96c2';
+  const metaTags = [];
+  if(meta && meta.confidence!=null) metaTags.push(`<span class="tag">conf ${(+meta.confidence).toFixed(2)}</span>`);
+  if(meta && meta.evidence) metaTags.push(`<span class="tag ev">evidence: ${meta.evidence.length}</span>`);
+  if(meta && meta.concerns) metaTags.push(`<span class="tag" style="border-color:rgba(255,140,90,.5);color:var(--orange)">${meta.concerns.length} concerns</span>`);
+  if(meta && meta.addresses) metaTags.push(`<span class="tag">${meta.addresses.length} concessions</span>`);
+  if(meta && meta.tag) metaTags.push(`<span class="tag">${esc(meta.tag)}</span>`);
+  if(meta && meta.passed!=null) metaTags.push(`<span class="tag ev">${meta.passed}/${meta.total} golden</span>`);
+  const div=document.createElement('div');
+  div.className='ev '+cls;
+  div.innerHTML=`<span class="ts">${new Date().toLocaleTimeString()}</span>
+    <span class="who" style="color:${col}">${esc(from||'?')} → ${esc(to||'?')} · ${esc(mtype)}</span>
+    <div class="body">${esc(body)}</div>${metaTags.length?'<div class="meta">'+metaTags.join('')+'</div>':''}`;
+  feed.appendChild(div);
+  feed.scrollTop=feed.scrollHeight;
+  $('#feedCnt').textContent=S.live.length;
+}
+
+/* ================= command ================= */
+async function sendCommand(){
+  const text=$('#cmdInput').value.trim();
+  if(!text) return;
+  $('#sendBtn').disabled=true;
+  const r = await post('/api/command', {text, lang: S.lang==='hi'?'hi':undefined});
+  $('#sendBtn').disabled=false;
+  if(r.error){ toast('Error: '+r.error); return; }
+  // NB: feed is cleared by the 'task.created' SSE handler (ordered before
+  // all other events for this task) — clearing here could race and wipe them.
+  $('#cmdInput').value='';
+}
+
+/* Permanent artifact download: builds a temporary <a download> pointing at
+   /api/artifacts/download/{file}. The endpoint replies with
+   Content-Disposition: attachment, so the browser SAVES .md/.json/.txt
+   files even where target=_blank OPEN is blocked (sandboxed preview). */
+function downloadArtifact(url, filename){
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename||'';
+  a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function showDeliverable(taskId){
+  const r = await api('/api/tasks/'+taskId);
+  if(r.error||!r.task) return;
+  const t=r.task;
+  $('#deliver').style.display='block';
+  $('#dStatus').innerHTML = `<span class="st ${esc(t.status)}">${esc(t.status)}</span>`;
+  const q=t.quality||{};
+  $('#dMeta').textContent = `score ${q.overall??'—'} · confidence ${t.confidence??'—'} · rounds ${t.rounds??0} · steps ${t.steps??0}`;
+  const summary = (S.lang==='hi' && t.summary_hi) ? t.summary_hi : (t.summary||'*(no summary)*');
+  $('#dSummary').textContent = summary;
+  const box=$('#dArts'); box.innerHTML='';
+  (t.artifacts||[]).forEach(a=>{
+    const d=document.createElement('div'); d.className='art';
+    // disk file is output/{taskId}_{name}; endpoint forces the download
+    const dlUrl='/api/artifacts/download/'+encodeURIComponent(taskId+'_'+a.name);
+    const sz=(a.bytes!=null)?fmtBytes(a.bytes):'';
+    d.innerHTML=`<span>📄</span><span class="nm">${esc(a.name)} <span class="st ${esc(a.status||'')}">${esc(a.status||'')}</span>
+        <span class="sz">${esc(sz)}</span></span>
+      <span class="mono muted">${esc((a.sha||'').slice(0,8))}</span>
+      <button type="button" class="dlbtn vbtn" title="Read it here, no download">VIEW</button>
+      <button type="button" class="dlbtn" title="Save a copy to your device">DOWNLOAD</button>`;
+    d.querySelector('.vbtn').addEventListener('click', ()=>viewArtifact(taskId, a.name, a.path));
+    d.querySelector('.dlbtn:not(.vbtn)').addEventListener('click', function(){
+      downloadArtifact(dlUrl, a.name);
+      const b=this; b.classList.add('ok'); b.textContent='SAVED ✓';
+      toast('Saved to YOUR device — browser Downloads folder (Ctrl+J). Server keeps its own copy: output/'+taskId+'_'+a.name);
+      setTimeout(()=>{ b.classList.remove('ok'); b.textContent='DOWNLOAD'; }, 2200);
+    });
+    box.appendChild(d);
+  });
+  const glink=document.createElement('div');
+  glink.style.cssText='margin-top:9px;font-size:12px';
+  glink.innerHTML=`<span class="muted">All task files with sizes & search live in </span>`+
+    `<a href="#" id="goFiles" style="color:var(--blue)">📁 Files & downloads →</a>`;
+  box.appendChild(glink);
+  glink.querySelector('#goFiles').addEventListener('click', e=>{ e.preventDefault(); show('files'); });
+  $('#deliver').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* ================= files screen (📁 proper file manager) =================
+   GET /api/files → every artifact with real size + server path.
+   Two destinations explained to the user: permanent server copy (output/)
+   and the browser download (device Downloads folder). VIEW = in-app read. */
+let FDATA={files:[],filtered:[]};
+function fmtBytes(n){ n=+n||0;
+  if(n<1024) return n+' B';
+  if(n<1048576) return (n/1024).toFixed(1)+' KB';
+  return (n/1048576).toFixed(1)+' MB'; }
+async function loadFiles(){
+  const r=await api('/api/files');
+  if(r.error){ toast('Files: '+r.error,true); return; }
+  FDATA.files=r.files||[];
+  $('#fCount').textContent=r.count??FDATA.files.length;
+  $('#fCnt2').textContent=r.count??FDATA.files.length;
+  $('#fBytes').textContent=fmtBytes(r.bytes);
+  $('#fDir').textContent=r.dir||'output/';
+  const sel=$('#fKind'); const cur=sel.value;
+  const kinds=[...new Set(FDATA.files.map(f=>f.kind))].sort();
+  sel.innerHTML='<option value="">all kinds</option>'+
+    kinds.map(k=>`<option${k===cur?' selected':''}>${esc(k)}</option>`).join('');
+  renderFiles();
+}
+function renderFiles(){
+  const q=($('#fQ').value||'').trim().toLowerCase();
+  const kind=$('#fKind').value;
+  FDATA.filtered=FDATA.files.filter(f=>
+    (!kind||f.kind===kind) &&
+    (!q||f.name.toLowerCase().includes(q)||f.kind.toLowerCase().includes(q)||
+        (f.task_id||'').toLowerCase().includes(q)));
+  const rows=FDATA.filtered;
+  $('#fTbl').innerHTML=`<tr><th>File</th><th>Kind</th><th>Task</th><th>Size</th>
+      <th>Saved</th><th>Trust</th><th style="text-align:right">Actions</th></tr>`+
+    (rows.length?rows.map((f,i)=>{
+      const ext=(f.name.split('.').pop()||'').toLowerCase();
+      const icon=ext==='html'?'🌐':ext==='json'?'🧾':ext==='csv'?'📊':'📄';
+      const disk=f.name.startsWith(f.task_id)?f.name:((f.task_id?f.task_id+'_':'')+f.name);
+      return `<tr${f.exists?'':' class="dim"'}>
+        <td><b>${icon} ${esc(f.name)}</b>${f.exists?'':' <span class="st FAILED">missing</span>'}
+            <div class="muted mono" style="font-size:10.5px">output/${esc(disk)}</div></td>
+        <td><span class="tag">${esc(f.kind)}</span></td>
+        <td>${f.task_id?`<a href="#" class="lnk" data-t="${esc(f.task_id)}">${esc(f.task_id)}</a>`:'—'}</td>
+        <td class="mono">${fmtBytes(f.bytes)}</td>
+        <td class="muted">${f.ts?new Date(f.ts*1000).toLocaleString():'—'}</td>
+        <td>${f.status?`<span class="st ${esc(f.status)}">${esc(f.status)}</span>`:'—'}</td>
+        <td class="acts">
+          <button type="button" class="dlbtn" data-act="view" data-i="${i}" title="Read here, no download">VIEW</button>
+          <button type="button" class="dlbtn" data-act="dl" data-i="${i}" title="Save to your device">DOWNLOAD</button>
+        </td></tr>`;
+    }).join(''):`<tr><td colspan="7" class="muted" style="padding:18px;text-align:center">No files match — clear the search.</td></tr>`);
+  $$('#fTbl .lnk').forEach(a=>a.addEventListener('click',e=>{
+    e.preventDefault(); show('command'); showDeliverable(a.dataset.t);
+  }));
+  $$('#fTbl .dlbtn').forEach(b=>b.addEventListener('click',function(){
+    const f=FDATA.filtered[+this.dataset.i]; if(!f) return;
+    if(this.dataset.act==='view'){ viewArtifact(f.task_id,f.name,f.view); return; }
+    downloadArtifact(f.download,f.name);
+    const b2=this; b2.classList.add('ok'); b2.textContent='SAVED ✓';
+    toast('Saved to YOUR device — browser Downloads folder (Ctrl+J). Server keeps its copy: '+f.server_path);
+    setTimeout(()=>{ b2.classList.remove('ok'); b2.textContent='DOWNLOAD'; },2200);
+  }));
+}
+$('#fQ').addEventListener('input',renderFiles);
+$('#fKind').addEventListener('change',renderFiles);
+
+/* in-app artifact reader (VIEW) — fetches text, shows in modal; download
+   button inside the modal for saving a copy to the device. */
+let FM_CUR=null;
+async function viewArtifact(taskId,name,url){
+  const path=url||('/api/artifacts/'+encodeURIComponent(taskId)+'/'+encodeURIComponent(name));
+  const dl='/api/artifacts/download/'+encodeURIComponent((taskId?taskId+'_':'')+name);
+  FM_CUR={name,dl};
+  $('#fmName').textContent=name;
+  $('#fmPath').textContent='server: output/'+(taskId?taskId+'_':'')+name;
+  $('#fmBody').textContent='Loading…';
+  $('#fModal').style.display='flex';
+  try{
+    const r=await fetch(path,{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const txt=await r.text();
+    $('#fmBody').textContent=txt||'(empty file)';
+  }catch(e){ $('#fmBody').textContent='Could not load: '+e.message; }
+}
+$('#fmClose').onclick=()=>{ $('#fModal').style.display='none'; };
+$('#fModal').addEventListener('click',e=>{ if(e.target.id==='fModal') $('#fModal').style.display='none'; });
+$('#fmDl').onclick=()=>{
+  if(!FM_CUR) return;
+  downloadArtifact(FM_CUR.dl,FM_CUR.name);
+  toast('Saved to YOUR device — browser Downloads folder (Ctrl+J)');
+};
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#fModal').style.display='none'; });
+
+/* ================= voice: mic → OpenAI Whisper → command ================
+   Path 1 (preferred): MediaRecorder captures audio → POST /api/voice →
+   server calls OpenAI Whisper (key from Settings) → transcript fills input.
+   Path 2 (fallback):  browser SpeechRecognition (free, no key).
+   Path 3: honest guidance (mic blocked in frame / unsupported browser).      */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, mr=null, mrChunks=[], mrTimer=null;
+
+function blobToB64(blob){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>res(String(fr.result).split(',')[1]||'');
+    fr.onerror=rej; fr.readAsDataURL(blob);
+  });
+}
+async function whisperTranscribe(blob){
+  const audio_b64 = await blobToB64(blob);
+  const r = await fetch('/api/voice', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({audio_b64, mime: blob.type||'audio/webm',
+                          lang: S.lang==='hi' ? 'hi' : 'en'})});
+  const j = await r.json().catch(()=>({error:'bad response'}));
+  if(!r.ok){ const e=new Error(j.hint||j.error||('HTTP '+r.status)); e.code=j.error||('http_'+r.status); throw e; }
+  return j.text||'';
+}
+function whisperReady(){
+  const v=(S.boot&&S.boot.settings&&S.boot.settings.voice)||{};
+  return !!v.whisper_ready;
+}
+function stopMicUi(){ S.recognizing=false; const b=$('#micBtn'); b.classList.remove('rec'); b.textContent='🎤'; }
+
+function toggleMic(){
+  if(mr && mr.state==='recording'){ mr.stop(); return; }
+  if(S.recognizing && rec){ try{rec.stop();}catch(e){} return; }
+  if(whisperReady()) startWhisperCapture(); else {
+    toast('Whisper key not set — using browser voice. Settings → API key enables Whisper / बिना key ब्राउज़र STT', true);
+    startSR();
+  }
+}
+
+function startWhisperCapture(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){
+    toast('Mic capture unsupported here — falling back to browser STT', true);
+    startSR(); return;
+  }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    mrChunks=[];
+    const mime = (window.MediaRecorder.isTypeSupported('audio/webm')?'audio/webm'
+                : window.MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'');
+    mr = new MediaRecorder(stream, mime?{mimeType:mime}:undefined);
+    mr.ondataavailable=e=>{ if(e.data && e.data.size) mrChunks.push(e.data); };
+    mr.onstop=async ()=>{
+      clearInterval(mrTimer);
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(mrChunks,{type:mr.mimeType||'audio/webm'});
+      stopMicUi();
+      if(blob.size<600){ toast('No audio captured — tap 🎤 and speak / ऑडियो नहीं मिला', true); return; }
+      $('#micBtn').textContent='⏳';
+      toast('Transcribing with Whisper… / ट्रांसक्राइब हो रहा है…');
+      try{
+        const text=(await whisperTranscribe(blob)).trim();
+        if(text){ $('#cmdInput').value=text;
+          toast('Voice captured — press RUN / आवाज़ मिली — RUN दबाएँ'); }
+        else toast('Whisper returned no words — speak longer', true);
+      }catch(err){
+        if(err.code==='no_key') toast('OpenAI key missing — Settings → API key. Using browser STT', true);
+        else if(err.code==='empty_transcript') toast('Whisper heard no words — speak longer/closer', true);
+        else toast('Whisper unavailable ('+(err.code||err.message)+') — browser STT fallback', true);
+        startSR();
+      }finally{ $('#micBtn').textContent='🎤'; }
+    };
+    mr.start();
+    S.recognizing=true; $('#micBtn').classList.add('rec');
+    const t0=Date.now();
+    mrTimer=setInterval(()=>{ if(Date.now()-t0>45000 && mr && mr.state==='recording') mr.stop(); },500);
+    toast('Listening (max 45s) — speak now / सुन रहे हैं — बोलिए');
+  }).catch(e=>{
+    toast('Mic blocked ('+(e&&e.name||'error')+') — allow microphone or open preview in a new tab; browser STT next', true);
+    startSR();
+  });
+}
+
+function startSR(){
+  if(!SR){ toast('No speech engine available — type the command instead / टाइप करें', true); return; }
+  if(S.recognizing && rec){ try{rec.stop();}catch(e){} return; }
+  rec = new SR();
+  rec.lang = S.lang==='hi' ? 'hi-IN' : 'en-IN';
+  rec.interimResults = true; rec.continuous = false;
+  let final='';
+  rec.onstart=()=>{ S.recognizing=true; $('#micBtn').classList.add('rec'); };
+  rec.onresult=(ev)=>{
+    let interim='';
+    for(let i=ev.resultIndex;i<ev.results.length;i++){
+      const r=ev.results[i];
+      if(r.isFinal) final+=r[0].transcript; else interim+=r[0].transcript;
+    }
+    $('#cmdInput').value = final+interim;
+  };
+  rec.onerror=(ev)=>{ toast('Mic error: '+ev.error+' — mic may be blocked in this frame', true); };
+  rec.onend=()=>{ stopMicUi();
+    if($('#cmdInput').value.trim()) toast('Voice captured — press RUN / आवाज़ मिली — RUN दबाएँ'); };
+  try{ rec.start(); }catch(e){ toast('Could not start speech engine — type instead', true); }
+}
+function speakResult(text){
+  if(!S.tts || !window.speechSynthesis) return;
+  const clean = text.replace(/[#*|—▸]/g,' ').replace(/\s+/g,' ').slice(0,900);
+  const u=new SpeechSynthesisUtterance(clean);
+  u.lang = S.lang==='hi' ? 'hi-IN' : 'en-IN';
+  u.rate = 1.0;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+/* ================= loads ================= */
+async function refreshBootstrap(){
+  const b = await api('/api/bootstrap');
+  if(b.error) return;
+  S.boot=b;
+  $('#modeBadge').textContent = b.settings.autonomy_mode;
+  $('#killBadge').style.display = b.settings.kill ? 'inline':'none';
+  $('#pauseBtn').textContent = b.settings.paused ? '▶ Resume' : '⏸ Pause';
+  renderAgents(b.agents);
+  renderApprovalsMini();
+  renderSkillsMini();
+}
+function renderAgents(list){
+  const g=$('#agentGrid'); if(!g) return;
+  g.innerHTML = list.map(a=>`
+    <div class="acard" style="--c:${a.color}">
+      <style></style>
+      <div class="top"><div class="ic">${a.icon}</div>
+        <div><div class="nm">${esc(a.name)}</div><div class="rl">${esc(a.role)}</div></div></div>
+      <div class="ch">${esc(a.charter)}</div>
+      <div class="dm">${(a.authority_domains||[]).map(d=>`<span class="dtag">🏛 ${esc(d)}</span>`).join('')}
+        ${(a.validators||[]).map(v=>`<span class="dtag">✔ ${esc(v)}</span>`).join('')}</div>
+    </div>`).join('');
+  $$('.acard').forEach((c,i)=>{ c.style.borderTopColor=list[i].color; c.style.borderTop='3px solid '+list[i].color; });
+  // constitution
+  const cl=$('#constList');
+  if(cl && !cl.dataset.done){
+    api('/api/constitution').then(r=>{
+      cl.innerHTML = (r.articles||[]).map(a=>`<div class="constline"><b>${a.id}</b><span>${esc(a.text)}</span></div>`).join('')+
+        `<p class="muted" style="margin-top:9px">⛔ RSI-forbidden learning: ${(r.rsi_forbidden||[]).map(f=>esc(f.reason)).join(' · ')}</p>`;
+      cl.dataset.done='1';
+    });
+  }
+}
+async function renderApprovalsMini(){
+  const r = await api('/api/approvals');
+  const pend=(r.approvals||[]).filter(a=>a.status==='pending');
+  $('#apprCnt').textContent=pend.length;
+  $('#apprCnt2') && ($('#apprCnt2').textContent=pend.length);
+  const mini=$('#apprMini');
+  if(mini) mini.innerHTML = pend.length? pend.map(a=>`
+    <div style="background:rgba(240,180,41,.08);border:1px solid rgba(240,180,41,.4);border-radius:9px;padding:8px;margin-top:6px;font-size:12px">
+      <b>${esc(a.action)}</b><div class="muted">risk ${a.risk}</div></div>`).join('')
+    : '<div class="muted" style="padding:6px 0">— queue empty —</div>';
+  const full=$('#apprFull');
+  if(full && S.ui==='approvals'){
+    const all=r.approvals||[];
+    const pend2=all.filter(a=>a.status==='pending');
+    full.innerHTML = pend2.length? pend2.map(a=>`
+      <div class="appr">
+        <div class="hd">🎫 ${esc(a.action)} <span class="st WAITING_APPROVAL">L4</span>
+          <span class="muted" style="margin-left:auto">risk ${a.risk}</span></div>
+        <div class="muted" style="margin-top:5px">${esc(a.reason)}</div>
+        <div class="pv">${esc(a.preview)}</div>
+        <input id="fb-${a.id}" placeholder="Rejection feedback (required for Reject) — what should change? / अस्वीकृति का कारण…"
+               style="width:100%;margin-top:7px;padding:7px 9px;background:rgba(0,0,0,.25);
+                      border:1px solid rgba(240,180,41,.45);border-radius:7px;color:inherit;
+                      font-size:12.5px;box-sizing:border-box">
+        <div class="btns">
+          <button class="btn ok" onclick="resolveAppr('${a.id}','approved')">✅ APPROVE</button>
+          <button class="btn no" onclick="rejectAppr('${a.id}')">❌ REJECT + REVISE</button>
+        </div>
+      </div>`).join('') + (all.filter(a=>a.status!=='pending').map(a=>`
+      <div class="muted" style="padding:5px 2px">✓ ${esc(a.action)} — ${esc(a.status)}${a.feedback?' · 💬 '+esc(a.feedback):''}</div>`).join(''))
+      : '<div class="muted">Queue empty — no L4 actions waiting.</div>';
+  }
+}
+async function loadApprovals(){ await renderApprovalsMini(); }
+window.resolveAppr = async (id, dec)=>{
+  await post('/api/approvals/'+id, {decision:dec});
+  toast(dec==='approved'?'Approved — task resumed':'Rejected — task halted safely');
+  loadApprovals(); renderApprovalsMini(); refreshBootstrap();
+};
+window.rejectAppr = async (id)=>{
+  const inp = document.getElementById('fb-'+id);
+  const fb = (inp && inp.value || '').trim();
+  if(!fb){
+    toast('Feedback required — the agent revises only against your reasons / अस्वीकृति का कारण लिखें', true);
+    inp && inp.focus();
+    return;
+  }
+  try{
+    await post('/api/approvals/'+id, {decision:'rejected', feedback:fb});
+    toast('Rejected with feedback — routed to agent as CHALLENGE (revision loop) / प्रतिक्रिया भेजी गई');
+    loadApprovals(); renderApprovalsMini(); refreshBootstrap();
+  }catch(e){
+    toast('Reject failed: '+(e && e.message || e), true);
+  }
+};
+
+async function renderSkillsMini(){
+  const r = await api('/api/skills');
+  $('#skillCnt').textContent=(r.skills||[]).length;
+  const tbl=$('#skillTbl');
+  if(tbl) tbl.innerHTML = `<tr><th>Skill</th><th>Category</th><th>Ver</th><th>Autonomy</th><th>Runs</th><th>Success</th><th>Validators</th></tr>`+
+    (r.skills||[]).map(s=>`<tr><td><b>${esc(s.name)}</b><div class="muted mono">${esc(s.id)}</div></td>
+      <td>${esc(s.category)}</td><td class="mono">${esc(s.version)}</td>
+      <td>L${s.autonomy}</td><td>${s.runs}</td>
+      <td>${s.runs?Math.round(100*s.successes/s.runs)+'%':'—'}</td>
+      <td class="muted">${(s.validators||[]).map(esc).join(', ')}</td></tr>`).join('');
+}
+
+async function loadMemory(){
+  const r = await api('/api/memory');
+  const st=r.stats||{};
+  $('#mEpi').textContent=(st.episodic||{}).total||0;
+  $('#mSem').textContent=(st.semantic||{}).total||0;
+  $('#mPro').textContent=(st.procedural||{}).total||0;
+  $('#mPerf').textContent=(st.performance||{}).total||0;
+  $('#mDec').textContent=(st.decision||{}).total||0;
+  $('#memTbl').innerHTML = `<tr><th>Layer</th><th>Key</th><th>Content</th><th>Conf</th><th>Status</th><th>Source</th></tr>`+
+    (r.memories||[]).slice(0,60).map(m=>`<tr><td><span class="tag">${esc(m.layer)}</span></td>
+      <td class="mono">${esc((m.key||'').slice(0,28))}</td>
+      <td style="max-width:420px">${esc((m.content||'').slice(0,180))}</td>
+      <td>${(+m.confidence).toFixed(2)}</td><td>${esc(m.status)}</td><td class="muted">${esc(m.source)}</td></tr>`).join('');
+}
+
+async function loadRSI(){
+  const r = await api('/api/rsi');
+  $('#goldenList').textContent = 'Golden suite: '+(r.golden_suite||[]).join(' · ');
+  const box=$('#rsiList');
+  box.innerHTML = (r.proposals||[]).length? (r.proposals||[]).map(p=>`
+    <div class="rsi">
+      <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+        <span class="st2 ${esc(p.status)}">${esc(p.status.toUpperCase())}</span>
+        <b style="flex:1;min-width:200px">${esc(p.title)}</b>
+        <span class="muted">#${p.id} · ${esc(p.kind)}</span>
+      </div>
+      <div class="muted" style="margin-top:7px">${esc(p.hypothesis)}</div>
+      <div class="meta" style="margin-top:7px;display:flex;gap:6px;flex-wrap:wrap">
+        <span class="tag">baseline ${p.baseline_score??'—'}</span>
+        <span class="tag ev">candidate ${p.candidate_score??'—'}</span>
+        <span class="tag">${esc(p.anti_habit_check||'')}</span>
+        <span class="tag">${esc(p.regression_cost||'')}</span>
+      </div>
+      ${p.status==='candidate'||p.status==='testing'?`<div class="btns" style="display:flex;gap:8px;margin-top:9px">
+        <button class="btn ok" onclick="rsiAct(${p.id},'promote')">🚀 PROMOTE</button>
+        <button class="btn no" onclick="rsiAct(${p.id},'reject')">🗑 REJECT</button></div>`:''}
+    </div>`).join('')
+    : '<div class="muted">No proposals yet — complete tasks to feed the RSI loop.</div>';
+}
+window.rsiAct = async (id, act)=>{
+  const r = await post(`/api/rsi/${id}/${act}`, act==='reject'?{reason:'user rejected in RSI lab'}:{});
+  toast(r.ok? `Promoted → version ${r.version}` : (r.reason||'action blocked by golden suite'));
+  loadRSI(); refreshBootstrap();
+};
+
+async function loadAudit(){
+  const r = await api('/api/audit');
+  $('#audTbl').innerHTML = `<tr><th>Time</th><th>Actor</th><th>Action</th><th>Ref</th><th>Detail</th></tr>`+
+    (r.audit||[]).map(a=>`<tr><td class="mono">${new Date(a.ts*1000).toLocaleTimeString()}</td>
+      <td>${esc(a.actor)}</td><td><b>${esc(a.action)}</b></td><td class="mono">${esc(a.ref)}</td>
+      <td class="muted mono" style="max-width:340px">${esc(JSON.stringify(a.detail).slice(0,150))}</td></tr>`).join('');
+  const tasks = (S.boot&&S.boot.tasks)||[];
+  $('#taskTbl').innerHTML = `<tr><th>ID</th><th>Command</th><th>Status</th><th>Score</th><th>Rounds</th><th>Time</th></tr>`+
+    tasks.map(t=>`<tr><td class="mono">${esc(t.id)}</td><td style="max-width:320px">${esc((t.command||'').slice(0,80))}</td>
+      <td><span class="st ${esc(t.status)}">${esc(t.status)}</span></td>
+      <td>${(t.quality||{}).overall??'—'}</td><td>${t.rounds}</td>
+      <td class="muted">${new Date(t.created_at*1000).toLocaleString()}</td></tr>`).join('');
+}
+
+async function fillSettings(){
+  const b = S.boot || await api('/api/bootstrap');
+  S.boot=b;
+  $('#setLang').value=b.settings.language||'en';
+  $('#setMode').value=b.settings.autonomy_mode;
+  $('#setRounds').value=b.settings.max_rounds||3;
+  const l=b.settings.llm||{};
+  $('#setLlmUrl').value=l.base_url||'';
+  $('#setLlmModel').value=l.model||'';
+  $('#setLlmKey').value='';
+  $('#keyState').textContent = l.api_key_set? ('key set: '+l.api_key+' — LLM + 🎤 Whisper ready')
+                                            : '(not set — offline engine; 🎤 uses browser STT)';
+}
+
+/* ================= KG canvas ================= */
+async function drawKG(){
+  if(!S.kg) S.kg = await api('/api/kg');
+  if(S.kg.error) return;
+  const cv=$('#kgCanvas'), ctx=cv.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth, h=cv.clientHeight;
+  cv.width=w*dpr; cv.height=h*dpr; ctx.scale(dpr,dpr);
+  const nodes=S.kg.nodes.map(n=>({...n}));
+  const edges=S.kg.edges;
+  $('#kgCnt').textContent = nodes.length+' nodes · '+edges.length+' edges';
+  const col={agent:'#f0b429',skill:'#4da3ff',domain:'#3ecf8e',validator:'#9b7bff',tool:'#ff8c5a',
+             knowledge:'#39d0d8',artifact:'#ff5c77'};
+  // layered layout by type
+  const order=['agent','domain','skill','validator','tool','knowledge','artifact'];
+  const cols={}; order.forEach((t,i)=>cols[t]=i);
+  const byType={}; nodes.forEach(n=>{ (byType[n.ntype]=byType[n.ntype]||[]).push(n); });
+  nodes.forEach(n=>{
+    const t=n.ntype, ci=cols[t]!=null?cols[t]:Math.floor(order.length/2);
+    const group=byType[t]||[n];
+    const idx=group.indexOf(n);
+    n.x = (w/(order.length+1))*(ci+1);
+    n.y = (h/(group.length+1))*(idx+1);
+    n.vx=0; n.vy=0;
+    n.r = t==='agent'?11: t==='skill'?8:6;
+  });
+  const idmap={}; nodes.forEach(n=>idmap[n.id]=n);
+  // simple force iterations
+  for(let it=0; it<140; it++){
+    for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      let dx=b.x-a.x, dy=b.y-a.y, d2=dx*dx+dy*dy||0.01, d=Math.sqrt(d2);
+      const f=Math.min(2.2, 2600/d2);
+      dx/=d; dy/=d;
+      a.vx-=dx*f; a.vy-=dy*f; b.vx+=dx*f; b.vy+=dy*f;
+    }
+    edges.forEach(e=>{
+      const a=idmap[e.src], b=idmap[e.dst]; if(!a||!b) return;
+      let dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||0.01;
+      const f=(d-90)*0.012;
+      dx/=d; dy/=d;
+      a.vx+=dx*f; a.vy+=dy*f; b.vx-=dx*f; b.vy-=dy*f;
+    });
+    nodes.forEach(n=>{
+      n.vx+=(w/2-n.x)*0.0018; n.vy+=(h/2-n.y)*0.0018;
+      n.x+=n.vx; n.y+=n.vy; n.vx*=0.82; n.vy*=0.82;
+      n.x=Math.max(18,Math.min(w-18,n.x)); n.y=Math.max(18,Math.min(h-18,n.y));
+    });
+  }
+  function render(){
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle='rgba(120,140,220,.22)'; ctx.lineWidth=1;
+    edges.forEach(e=>{
+      const a=idmap[e.src], b=idmap[e.dst]; if(!a||!b) return;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    });
+    nodes.forEach(n=>{
+      const c=col[n.ntype]||'#888';
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,7);
+      ctx.fillStyle=c; ctx.fill();
+      ctx.strokeStyle='rgba(10,14,26,.9)'; ctx.stroke();
+      if(n.ntype==='agent'||n.ntype==='skill'||n.ntype==='domain'){
+        ctx.fillStyle='#c6cef2'; ctx.font='10px Segoe UI';
+        ctx.fillText(n.label.length>22?n.label.slice(0,21)+'…':n.label, n.x+n.r+3, n.y+3);
+      }
+    });
+  }
+  render();
+  cv.onmousemove=(ev)=>{
+    const rect=cv.getBoundingClientRect();
+    const mx=ev.clientX-rect.left, my=ev.clientY-rect.top;
+    const hit=nodes.find(n=>Math.hypot(n.x-mx,n.y-my)<n.r+3);
+    const info=$('#kgInfo');
+    if(hit){
+      info.style.display='block';
+      const outE=S.kg.edges.filter(e=>e.src===hit.id).map(e=>`→ ${e.etype} → ${e.dst}`);
+      const inE=S.kg.edges.filter(e=>e.dst===hit.id).map(e=>`${e.src} → ${e.etype} →`);
+      info.innerHTML=`<b style="color:${col[hit.ntype]}">${esc(hit.label)}</b>
+        <div class="muted mono" style="font-size:10.5px">${esc(hit.ntype)} · ${esc(hit.id)}</div>
+        <div style="margin-top:6px;font-size:11px">${[...outE,...inE].slice(0,10).map(esc).join('<br>')||'—'}</div>`;
+    } else info.style.display='none';
+  };
+  cv.onmouseleave=()=>{ $('#kgInfo').style.display='none'; };
+}
+
+/* ================= settings / controls ================= */
+$('#saveSet').onclick = async ()=>{
+  const body = {
+    language: $('#setLang').value,
+    autonomy_mode: $('#setMode').value,
+    max_rounds: +$('#setRounds').value,
+    llm: { base_url: $('#setLlmUrl').value.trim(), model: $('#setLlmModel').value.trim() },
+  };
+  const key = $('#setLlmKey').value.trim();
+  if(key) body.llm.api_key = key;
+  const r = await post('/api/settings', body);
+  if(r.ok){ toast('Settings saved ✓'); S.lang=body.language; localStorage.setItem('om_lang',S.lang); applyI18n(); refreshBootstrap(); }
+  else toast('Save failed');
+};
+$('#langBtn').onclick = ()=>{
+  S.lang = S.lang==='en'?'hi':'en';
+  localStorage.setItem('om_lang', S.lang);
+  applyI18n();
+  if(S.currentTask) showDeliverable(S.currentTask);
+};
+$('#pauseBtn').onclick = async ()=>{
+  const b=S.boot; const paused=b&&b.settings&&b.settings.paused;
+  await post('/api/control', {action: paused?'resume':'pause'});
+  refreshBootstrap(); toast(paused?'Resumed':'Paused — no new autonomous actions');
+};
+let killArmed=false;
+$('#killBtn').onclick = async ()=>{
+  const b=S.boot; const killed=b&&b.settings&&b.settings.kill;
+  if(killed){ await post('/api/control',{action:'reset_kill'}); toast('Kill disengaged — system armed'); refreshBootstrap(); return; }
+  if(!killArmed){ killArmed=true; $('#killBtn').classList.add('armed');
+    toast('Press AGAIN within 4s to stop ALL autonomous actions'); setTimeout(()=>{killArmed=false;$('#killBtn').classList.remove('armed');},4000); return; }
+  await post('/api/control',{action:'kill'}); killArmed=false; $('#killBtn').classList.remove('armed');
+  toast('🛑 EMERGENCY STOP engaged — state checkpointed'); refreshBootstrap();
+};
+$('#sendBtn').onclick = sendCommand;
+$('#cmdInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendCommand(); }
+});
+$('#micBtn').onclick = toggleMic;
+$('#ttsBtn').onclick = ()=>{ S.tts=!S.tts; $('#ttsBtn').classList.toggle('on',S.tts);
+  toast(S.tts?'Voice output ON':'Voice output OFF'); };
+
+/* ================= boot ================= */
+(async function boot(){
+  buildNav(); applyI18n();
+  try{
+    const probe = await fetch('/api/health', {cache:'no-store'});
+    if(!probe.ok) throw new Error('health '+probe.status);
+  }catch(e){
+    // server asleep at page load → show banner, poll, reload when awake (clean boot)
+    startWakeLoop('💤 System asleep at startup — waiting for wake-up…',
+                  ()=>{ stopWakeLoop(true); location.reload(); });
+    return;
+  }
+  connectSSE();
+  await refreshBootstrap();
+  renderApprovalsMini();
+  if(S.boot && S.boot.history && S.boot.history.length){
+    S.boot.history.forEach(h=>{
+      if(h.type==='deliberation.message'){
+        const p=h.payload||{};
+        addEv(p.mtype,p.from,p.to,p.body,p.payload||{});
+      }
+    });
+  }
+  show('command');
+  setPipeline('READY');
+})();
+window.addEventListener('resize', ()=>{ if(S.ui==='skills'&&S.kg){ S.kg=null; drawKG(); } });
+</script>
+</body>
+</html>

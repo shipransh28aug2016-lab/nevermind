@@ -1,0 +1,25 @@
+# secrets & runtime data — never commit
+data/
+*.db
+*.db-wal
+*.db-shm
+.session_secret
+github_oauth.json
+
+# generated artifacts
+output/
+
+# caches / logs
+__pycache__/
+*.py[cod]
+*.log
+.cache/
+
+# tool-private notes
+.claude/
+
+# editors / OS
+.DS_Store
+*.swp
+.vscode/
+.idea/
