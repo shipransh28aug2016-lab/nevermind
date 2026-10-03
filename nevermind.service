@@ -1,0 +1,24 @@
+[Unit]
+Description=NEVERMIND agent OS server (permanent auto-wake)
+After=network.target
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/nevermind
+Environment=HOME=/home/user PATH=/usr/local/bin:/usr/bin:/bin
+# Wait while another instance already serves the port (e.g. session keeper),
+# so systemd NEVER bind-races — it takes over as soon as the port frees.
+# TimeoutStartSec=0 + unbounded loop: systemd is a PATIENT STANDBY. The old
+# 300x2s loop + default 90s start timeout SIGTERMed the wait (Result=timeout)
+# and caused auto-restart churn with EADDRINUSE crashes (found live).
+# If the port never frees, another healthy instance is serving — correct wait.
+TimeoutStartSec=0
+ExecStartPre=/bin/bash -c 'while timeout 0.3 bash -c "</dev/tcp/127.0.0.1/8317" 2>/dev/null; do sleep 2; done'
+ExecStart=/usr/local/bin/python3 run.py
+Restart=always
+RestartSec=5
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
