@@ -1,0 +1,12 @@
+# Conda environment for NeverMind (alternative to pip + requirements.txt)
+#   conda env create -f environment.yml
+#   conda activate nevermind
+name: nevermind
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - curl                 # container/healthcheck parity
+  - pip:
+      - gunicorn>=21.2,<24

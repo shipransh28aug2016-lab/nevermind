@@ -5,6 +5,7 @@ data/
 *.db-shm
 .session_secret
 github_oauth.json
+.env
 
 # generated artifacts
 output/

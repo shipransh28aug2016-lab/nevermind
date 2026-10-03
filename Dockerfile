@@ -11,7 +11,7 @@ WORKDIR /app
 COPY agentos/ agentos/
 COPY static/ static/
 COPY docs/ docs/
-COPY run.py guardian.py README.md ./
+COPY run.py guardian.py wsgi.py gunicorn.conf.py requirements.txt README.md ./
 
 # runtime dirs (overridden by a mounted volume in production)
 RUN mkdir -p data output

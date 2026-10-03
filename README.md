@@ -57,6 +57,27 @@ export GITHUB_CLIENT_ID=… GITHUB_CLIENT_SECRET=…
 Until configured, the landing page shows **“OAuth not configured yet”** honestly and everything
 else keeps working. Sessions are HMAC-signed cookies (`data/.session_secret`,7-day expiry).
 
+## Deployment
+
+Four production-ready entry points — pick your platform:
+
+| Mode | Command |
+|---|---|
+| Plain stdlib (zero deps) | `python3 run.py` |
+| **pip + Gunicorn (WSGI)** | `pip install -r requirements.txt` → `gunicorn wsgi:application` |
+| **Docker Compose** | `docker compose up -d` (port `8317:8317`, persistent `nevermind-data` volume) |
+| **Conda** | `conda env create -f environment.yml && conda activate nevermind` |
+
+* **`wsgi.py`** runs the *real* stdlib server in-process and adapts it for any
+  WSGI host — SSE, static, auth and APIs behave identically to `run.py`.
+* **`gunicorn.conf.py`** is auto-loaded: binds `$PORT` / `NEVERMIND_PORT` (PaaS-aware),
+  `workers=1 threads=4` (one shared backend; SSE-safe).
+* **`.env.example`** documents every variable (`NEVERMIND_*`, `GITHUB_CLIENT_ID/SECRET`,
+  `NEVERMIND_SESSION_SECRET`). Copy to `.env` — Compose reads it automatically; the
+  app itself never parses `.env`.
+* **`render.yaml`** (Docker blueprint) and the plain `Dockerfile` remain available
+  for Render / Fly / any container host.
+
 ## Project layout
 
 ```

@@ -1,0 +1,30 @@
+# NeverMind — one-command local/server deployment
+#   cp .env.example .env      # optional: fill OAuth keys
+#   docker compose up -d
+services:
+  nevermind:
+    build: .
+    image: nevermind:latest
+    container_name: nevermind
+    ports:
+      - "8317:8317"
+    environment:
+      NEVERMIND_HOST: 0.0.0.0
+      NEVERMIND_PORT: "8317"
+      # Auto-substituted from a local `.env` file when present (optional):
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      NEVERMIND_SESSION_SECRET: ${NEVERMIND_SESSION_SECRET:-}
+    volumes:
+      # persist SQLite memory/KG + OAuth config across container rebuilds
+      - nevermind-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8317/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  nevermind-data:

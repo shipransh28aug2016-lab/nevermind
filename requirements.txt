@@ -1,0 +1,12 @@
+# NeverMind dependencies
+# ----------------------
+# The core runtime is pure Python standard library — `python3 run.py` needs
+# NOTHING installed.
+#
+# The only dependency is Gunicorn, used for the production WSGI entry point
+# (wsgi.py) on PaaS hosts / systemd:
+#
+#   pip install -r requirements.txt
+#   gunicorn wsgi:application
+#
+gunicorn>=21.2,<24
