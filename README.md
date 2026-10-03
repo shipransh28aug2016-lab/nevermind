@@ -59,6 +59,8 @@ else keeps working. Sessions are HMAC-signed cookies (`data/.session_secret`,7-d
 
 ## Deployment
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/shipransh28aug2016-lab/nevermind)
+
 Four production-ready entry points — pick your platform:
 
 | Mode | Command |

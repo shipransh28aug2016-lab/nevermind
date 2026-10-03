@@ -14,7 +14,10 @@ services:
       #     sync: false
       # - key: GITHUB_CLIENT_SECRET
       #     sync: false
-    disk:
-      name: nevermind-data
-      mountPath: /app/data
-      sizeGB: 1
+    # Persistent disk needs a PAID Render plan — blueprint validation FAILS on
+    # free tier with it. Re-enable after upgrading; free tier still works
+    # (SQLite lives in the container, resets on re-deploy):
+    # disk:
+    #   name: nevermind-data
+    #   mountPath: /app/data
+    #   sizeGB: 1
