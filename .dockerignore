@@ -1,0 +1,13 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+data
+output
+*.md
+!README.md
+.claude
+systemd
+Dockerfile
+render.yaml
+.dockerignore

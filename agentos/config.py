@@ -8,7 +8,8 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 DB_PATH = os.path.join(DATA_DIR, "nevermind.db")
 
 HOST = os.environ.get("NEVERMIND_HOST", "0.0.0.0")
-PORT = int(os.environ.get("NEVERMIND_PORT", "8317"))
+# PaaS hosts (Render/Fly/…) inject $PORT — honour it after explicit overrides
+PORT = int(os.environ.get("NEVERMIND_PORT") or os.environ.get("PORT") or "8317")
 
 # Hard runtime guards (Agent Loop Guard — never let the swarm runaway)
 MAX_STEPS_PER_TASK = 40
